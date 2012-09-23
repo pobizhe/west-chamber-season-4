@@ -1,4 +1,4 @@
-# $Id: lazy.py,v 1.5.2.4 2011/03/19 22:15:01 customdesigned Exp $
+# $Id: lazy.py,v 1.5.2.7 2011/11/23 17:14:11 customdesigned Exp $
 #
 # This file is part of the pydns project.
 # Homepage: http://pydns.sourceforge.net
@@ -8,9 +8,8 @@
 
 # routines for lazy people.
 import Base
-import string
 
-from Base import DNSError
+from Base import ServerError
 
 def revlookup(name):
     "convenience routine for doing a reverse lookup of an address"
@@ -21,9 +20,9 @@ def revlookup(name):
 def revlookupall(name):
     "convenience routine for doing a reverse lookup of an address"
     # FIXME: check for IPv6
-    a = string.split(name, '.')
+    a = name.split('.')
     a.reverse()
-    b = string.join(a, '.')+'.in-addr.arpa'
+    b = '.'.join(a)+'.in-addr.arpa'
     names = dnslookup(b, qtype = 'ptr')
     # this will return all records.
     names.sort(key=str.__len__)
@@ -34,13 +33,15 @@ def dnslookup(name,qtype):
     if Base.defaults['server'] == []: Base.DiscoverNameServers()
     result = Base.DnsRequest(name=name, qtype=qtype).req()
     if result.header['status'] != 'NOERROR':
-        raise DNSError("DNS query status: %s" % result.header['status'])
+        raise ServerError("DNS query status: %s" % result.header['status'],
+            result.header['rcode'])
     elif len(result.answers) == 0 and Base.defaults['server_rotate']:
         # check with next DNS server
         result = Base.DnsRequest(name=name, qtype=qtype).req()
     if result.header['status'] != 'NOERROR':
-        raise DNSError("DNS query status: %s" % result.header['status'])
-    return map(lambda x: x['data'],result.answers)
+        raise ServerError("DNS query status: %s" % result.header['status'],
+            result.header['rcode'])
+    return [x['data'] for x in result.answers]
 
 def mxlookup(name):
     """
@@ -53,6 +54,15 @@ def mxlookup(name):
 
 #
 # $Log: lazy.py,v $
+# Revision 1.5.2.7  2011/11/23 17:14:11  customdesigned
+# Apply patch 3388075 from sourceforge: raise subclasses of DNSError.
+#
+# Revision 1.5.2.6  2011/03/21 21:06:47  customdesigned
+# Replace map() with list comprehensions.
+#
+# Revision 1.5.2.5  2011/03/21 21:03:22  customdesigned
+# Get rid of obsolete string module
+#
 # Revision 1.5.2.4  2011/03/19 22:15:01  customdesigned
 # Added rotation of name servers - SF Patch ID: 2795929
 #

@@ -1,5 +1,5 @@
 """
-$Id: Base.py,v 1.12.2.15 2011/03/19 22:15:01 customdesigned Exp $
+$Id: Base.py,v 1.12.2.19 2011/11/23 17:14:11 customdesigned Exp $
 
 This file is part of the pydns project.
 Homepage: http://pydns.sourceforge.net
@@ -26,8 +26,19 @@ except:
   import random
 
 class DNSError(Exception): pass
+class ArgumentError(DNSError): pass
+class SocketError(DNSError): pass
+class TimeoutError(DNSError): pass
 
-# Lib uses DNSError, so import after defining.
+class ServerError(DNSError):
+    def __init__(self, message, rcode):
+        DNSError.__init__(self, message, rcode)
+        self.message = message
+        self.rcode = rcode
+
+class IncompleteReplyError(DNSError): pass
+
+# Lib uses some of the above exception classes, so import after defining.
 import Lib
 
 defaults= { 'protocol':'udp', 'port':53, 'opcode':Opcode.QUERY,
@@ -119,7 +130,7 @@ class DnsRequest:
         if self.timeout > 0:
             r,w,e = select.select([self.s],[],[],self.timeout)
             if not len(r):
-                raise DNSError, 'Timeout'
+                raise TimeoutError, 'Timeout'
         (self.reply, self.from_address) = self.s.recvfrom(65535)
         self.time_finish=time.time()
         self.args['server']=self.ns
@@ -131,11 +142,11 @@ class DnsRequest:
         if self.timeout > 0:
             # should we restart timeout everytime we get a dribble of data?
             rem = self.time_start + self.timeout - time.time()
-            if rem <= 0: raise DNSError,'Timeout'
+            if rem <= 0: raise TimeoutError, 'Timeout'
             self.s.settimeout(rem)
         buf = f.read(count - len(res))
         if not buf:
-          raise DNSError,'incomplete reply - %d of %d read' % (len(res),count)
+          raise IncompleteReplyError, 'incomplete reply - %d of %d read' % (len(res),count)
         res += buf
       return res
 
@@ -144,10 +155,12 @@ class DnsRequest:
             self.s.settimeout(self.timeout)
         else:
             self.s.settimeout(None)
-        f = self.s.makefile('r')
-        header = self._readall(f,2)
-        count = Lib.unpack16bit(header)
-        self.reply = self._readall(f,count)
+        f = self.s.makefile('rb')
+        try:
+          header = self._readall(f,2)
+          count = Lib.unpack16bit(header)
+          self.reply = self._readall(f,count)
+        finally: f.close()
         self.time_finish=time.time()
         self.args['server']=self.ns
         return self.processReply()
@@ -197,7 +210,7 @@ class DnsRequest:
         " needs a refactoring "
         self.argparse(name,args)
         #if not self.args:
-        #    raise DNSError,'reinitialize request before reuse'
+        #    raise ArgumentError, 'reinitialize request before reuse'
         protocol = self.args['protocol']
         self.port = self.args['port']
         self.tid = random.randint(0,65535)
@@ -209,14 +222,14 @@ class DnsRequest:
             try:
                 qtype = getattr(Type, string.upper(self.args['qtype']))
             except AttributeError:
-                raise DNSError,'unknown query type'
+                raise ArgumentError, 'unknown query type'
         else:
             qtype=self.args['qtype']
         if not self.args.has_key('name'):
             print self.args
-            raise DNSError,'nothing to lookup'
+            raise ArgumentError, 'nothing to lookup'
         qname = self.args['name']
-        if qtype == Type.AXFR:
+        if qtype == Type.AXFR and protocol != 'tcp':
             print 'Query type AXFR, protocol forced to TCP'
             protocol = 'tcp'
         #print 'QTYPE %d(%s)' % (qtype, Type.typestr(qtype))
@@ -233,16 +246,15 @@ class DnsRequest:
             else:
                 self.sendTCPRequest(server)
         except socket.error, reason:
-            raise DNSError, reason
+            raise SocketError, reason
         if self.async:
             return None
         else:
-            if not self.response:
-                raise DNSError,'no working nameservers found'
             return self.response
 
     def sendUDPRequest(self, server):
         "refactor me"
+        first_socket_error = None
         self.response=None
         for self.ns in server:
             #print "trying udp",self.ns
@@ -278,12 +290,18 @@ class DnsRequest:
                 finally:
                     if not self.async:
                         self.s.close()
-            except socket.error:
+            except socket.error, e:
+                # Keep trying more nameservers, but preserve the first error
+                # that occurred so it can be reraised in case none of the
+                # servers worked:
+                first_socket_error = first_socket_error or e
                 continue
-            break
+        if not self.response and first_socket_error:
+            raise first_socket_error
 
     def sendTCPRequest(self, server):
         " do the work of sending a TCP request "
+        first_socket_error = None
         self.response=None
         for self.ns in server:
             #print "trying tcp",self.ns
@@ -312,8 +330,11 @@ class DnsRequest:
                         break
                 finally:
                     self.s.close()
-            except socket.error:
+            except socket.error, e:
+                first_socket_error = first_socket_error or e
                 continue
+        if not self.response and first_socket_error:
+            raise first_socket_error
 
 #class DnsAsyncRequest(DnsRequest):
 class DnsAsyncRequest(DnsRequest,asyncore.dispatcher_with_send):
@@ -351,6 +372,19 @@ class DnsAsyncRequest(DnsRequest,asyncore.dispatcher_with_send):
 
 #
 # $Log: Base.py,v $
+# Revision 1.12.2.19  2011/11/23 17:14:11  customdesigned
+# Apply patch 3388075 from sourceforge: raise subclasses of DNSError.
+#
+# Revision 1.12.2.18  2011/05/02 16:02:36  customdesigned
+# Don't complain about protocol for AXFR unless it needs changing.
+# Reported by Ewoud Kohl van Wijngaarden.
+#
+# Revision 1.12.2.17  2011/03/21 13:01:24  customdesigned
+# Close file for processTCPReply
+#
+# Revision 1.12.2.16  2011/03/21 12:54:52  customdesigned
+# Reply is binary.
+#
 # Revision 1.12.2.15  2011/03/19 22:15:01  customdesigned
 # Added rotation of name servers - SF Patch ID: 2795929
 #
