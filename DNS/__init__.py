@@ -1,5 +1,5 @@
 # -*- encoding: utf-8 -*-
-# $Id: __init__.py,v 1.8.2.10 2012/02/03 23:04:01 customdesigned Exp $
+# $Id: __init__.py,v 1.8.2.9 2011/03/16 20:06:39 customdesigned Exp $
 #
 # This file is part of the pydns project.
 # Homepage: http://pydns.sourceforge.net
@@ -9,7 +9,7 @@
 
 # __init__.py for DNS class.
 
-__version__ = '2.3.6'
+__version__ = '2.3.5'
 
 import Type,Opcode,Status,Class
 from Base import DnsRequest, DNSError
@@ -23,9 +23,6 @@ Result = DnsResult
 
 #
 # $Log: __init__.py,v $
-# Revision 1.8.2.10  2012/02/03 23:04:01  customdesigned
-# Release 2.3.6
-#
 # Revision 1.8.2.9  2011/03/16 20:06:39  customdesigned
 # Refer to explicit LICENSE file.
 #
