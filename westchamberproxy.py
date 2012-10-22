@@ -11,7 +11,7 @@
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 from SocketServer import ThreadingMixIn
 from httplib import HTTPResponse, BadStatusLine
-import os, re, socket, struct, threading, traceback, sys, select, urlparse, signal, urllib, urllib2, time, base64, hashlib, binascii, zlib, httplib, errno, string, logging, random, ssl, BaseHTTPServer, SocketServer
+import os, re, socket, struct, threading, traceback, sys, select, urlparse, signal, urllib, urllib2, time, hashlib, binascii, zlib, httplib, errno, string, logging, random, ssl
 import DNS
 
 try:
@@ -24,8 +24,8 @@ import config
 
 gConfig = config.gConfig
 
+assert gConfig['AUTORANGE_BUFSIZE'] <= gConfig['AUTORANGE_WAITSIZE'] <= gConfig['AUTORANGE_MAXSIZE']
 
-gConfig["GAE_FETCHSERVER"] = 'https://%s/fetch.py?' %(gConfig["GOAGENT_FETCHHOST"])
 gConfig["BLACKHOLES"] = [
     '243.185.187.30', 
     '243.185.187.39', 
@@ -168,33 +168,6 @@ class SimpleMessageClass(object):
     def __str__(self):
         return ''.join(self.headers)
 
-def encode_request(headers, **kwargs):
-    if hasattr(headers, 'items'):
-        headers = headers.items()
-    data = ''.join('%s: %s\r\n' % (k, v) for k, v in headers) + ''.join('X-Goa-%s: %s\r\n' % (k.title(), v) for k, v in kwargs.iteritems())
-    return base64.b64encode(zlib.compress(data)).rstrip()
-
-def decode_request(request):
-    data     = zlib.decompress(base64.b64decode(request))
-    headers  = []
-    kwargs   = {}
-    for line in data.splitlines():
-        keyword, _, value = line.partition(':')
-        if keyword.startswith('X-Goa-'):
-            kwargs[keyword[6:].lower()] = value.strip()
-        else:
-            headers.append((keyword.title(), value.strip()))
-    return headers, kwargs
-
-def pack_request(method, url, headers, payload, fetchhost, **kwargs):
-    content_length = int(headers.get('Content-Length',0))
-    request_kwargs = {'method':method, 'url':url}
-    request_kwargs.update(kwargs)
-    request_headers = {'Host':fetchhost, 'Cookie':encode_request(headers, **request_kwargs), 'Content-Length':str(content_length)}
-    if not isinstance(payload, str):
-        payload = payload.read(content_length)
-    return 'POST', request_headers, payload
-
 gOptions = {}
 
 gipWhiteList = []
@@ -246,32 +219,6 @@ def isDomainBlocked(host):
         return rootDomain in gConfig["BLOCKED_DOMAINS"]
     return False
 
-def httplib_normalize_headers(response_headers, skip_headers=[]):
-    headers = []
-    for keyword, value in response_headers:
-        keyword = keyword.title()
-        if keyword in skip_headers:
-            continue
-        if keyword == 'Connection':
-            headers.append(('Connection', 'close'))
-        elif keyword != 'Set-Cookie':
-            headers.append((keyword, value))
-        else:
-            scs = value.split(', ')
-            cookies = []
-            i = -1
-            for sc in scs:
-                if re.match(r'[^ =]+ ', sc):
-                    try:
-                        cookies[i] = '%s, %s' % (cookies[i], sc)
-                    except IndexError:
-                        pass
-                else:
-                    cookies.append(sc)
-                    i += 1
-            headers += [('Set-Cookie', x) for x in cookies]
-    return headers
-
 def urlfetch(url, payload, method, headers, fetchhost, fetchserver, password=None, dns=None, on_error=None):
     errors = []
     params = {'url':url, 'method':method, 'headers':headers, 'payload':payload}
@@ -306,7 +253,7 @@ def urlfetch(url, payload, method, headers, fetchhost, fetchserver, password=Non
                 raise ValueError('Data format not match(%s)' % url)
 
             return (0, data)
-        except Exception, e:
+        except Exception as e:
             if on_error:
                 logging.info('urlfetch error=%s on_error=%s', str(e), str(on_error))
                 data = on_error(e)
@@ -343,13 +290,13 @@ class CertUtil(object):
         ca.set_issuer(ca.get_subject())
         ca.set_pubkey(key)
         ca.add_extensions([
-            OpenSSL.crypto.X509Extension(b'basicConstraints', True, b'CA:TRUE'),
-            OpenSSL.crypto.X509Extension(b'nsCertType', True, b'sslCA'),
-            OpenSSL.crypto.X509Extension(b'extendedKeyUsage', True,
-                b'serverAuth,clientAuth,emailProtection,timeStamping,msCodeInd,msCodeCom,msCTLSign,msSGC,msEFS,nsSGC'),
-            OpenSSL.crypto.X509Extension(b'keyUsage', False, b'keyCertSign, cRLSign'),
-            OpenSSL.crypto.X509Extension(b'subjectKeyIdentifier', False, b'hash', subject=ca),
-            ])
+          OpenSSL.crypto.X509Extension(b'basicConstraints', True, b'CA:TRUE'),
+          OpenSSL.crypto.X509Extension(b'nsCertType', True, b'sslCA'),
+          OpenSSL.crypto.X509Extension(b'extendedKeyUsage', True,
+            b'serverAuth,clientAuth,emailProtection,timeStamping,msCodeInd,msCodeCom,msCTLSign,msSGC,msEFS,nsSGC'),
+          OpenSSL.crypto.X509Extension(b'keyUsage', False, b'keyCertSign, cRLSign'),
+          OpenSSL.crypto.X509Extension(b'subjectKeyIdentifier', False, b'hash', subject=ca),
+          ])
         ca.sign(key, 'sha1')
         return key, ca
 
@@ -438,7 +385,7 @@ class CertUtil(object):
         certdir = os.path.join(os.path.dirname(__file__), 'certs')
         if not os.path.exists(certdir):
             os.makedirs(certdir)
-            #Check CA exists
+        #Check CA exists
         capath = os.path.join(os.path.dirname(__file__), 'CA.key')
         if not os.path.exists(capath):
             if not OpenSSL:
@@ -448,28 +395,25 @@ class CertUtil(object):
                 os.system('certmgr.exe -del -n "GoAgent CA" -c -s -r localMachine Root')
             [os.remove(os.path.join('certs', x)) for x in os.listdir('certs')]
             CertUtil.dump_ca('CA.key', 'CA.crt')
-            #Check CA imported
+        #Check CA imported
         cmd = {
-            'win32'  : r'cd /d "%s" && certmgr.exe -add CA.crt -c -s -r localMachine Root >NUL' % os.path.dirname(__file__),
-            'darwin' : r'security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain CA.crt',
-            }.get(sys.platform)
+                'win32'  : r'cd /d "%s" && certmgr.exe -add CA.crt -c -s -r localMachine Root >NUL' % os.path.dirname(__file__),
+                'darwin' : r'security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain CA.crt',
+              }.get(sys.platform)
         if cmd and os.system(cmd) != 0:
             logging.warning('GoAgent install trusted root CA certificate failed, Please run goagent by administrator/root.')
 
 
 class ThreadingHTTPServer(ThreadingMixIn, HTTPServer): pass
-class ProxyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
+class ProxyHandler(BaseHTTPRequestHandler):
     remote = None
     dnsCache = {}
     dnsCacheLock = 0
     now = 0
     depth = 0
     MessageClass = SimpleMessageClass
+	
 
-    def setup(self):
-        ProxyHandler.do_HEAD = ProxyHandler.do_METHOD_Tunnel
-        ProxyHandler.setup = BaseHTTPServer.BaseHTTPRequestHandler.setup
-        BaseHTTPServer.BaseHTTPRequestHandler.setup(self)
 
     def enableInjection(self, host, ip):
         self.depth += 1
@@ -846,45 +790,12 @@ class ProxyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             self.wfile = self._realwfile
             self.connection = self._realconnection
 
-    def send_response(self, code, message=None, headers=None):
-        self.log_request(code)
-        message = message or self.responses.get(code, ('OK',))[0]
-        if headers is None:
-            self.connection.sendall('%s %d %s\r\n' % (self.protocol_version, code, message))
-        else:
-            self.connection.sendall('%s %d %s\r\n%s\r\n' % 
-                    (self.protocol_version, code, message, headers))
-
     def end_error(self, code, message=None, data=None):
         if not data:
             self.send_error(code, message)
         else:
             self.send_response(code, message)
             self.connection.sendall(data)
-
-    def do_METHOD_Direct(self):
-        self.log_request()
-
-        content_length = int(self.headers.get('Content-Length', 0))
-        payload = self.rfile.read(content_length) if content_length else None
-        request = urllib2.Request(self.path, data=payload, headers=dict(self.headers))
-        request.get_method = lambda: self.command
-        try:
-            response = urllib2.urlopen(request)
-        except urllib2.HTTPError as http_error:
-            response = http_error
-        except urllib2.URLError as url_error:
-            raise
-
-        headers = httplib_normalize_headers(response.headers.items(), skip_headers=['Transfer-Encoding'])
-        self.start_response(response.code, headers)
-
-        while 1:
-            data = response.read(8192)
-            if not data:
-                response.close()
-                break
-            self.wfile.write(data)
 
     def do_METHOD_Tunnel(self):
         headers = self.headers
@@ -907,7 +818,17 @@ class ProxyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             logging.info('autorange range=%r match url=%r', autorange, self.path)
             m = re.search('bytes=(\d+)-', autorange)
             start = int(m.group(1) if m else 0)
-            headers['Range'] = 'bytes=%d-%d' % (start, start+1048576-1)
+            headers['Range'] = 'bytes=%d-%d' % (start, start+gConfig['AUTORANGE_MAXSIZE']-1)
+        elif host.endswith(gConfig['AUTORANGE_HOSTS_TAIL']):
+            try:
+                pattern = (p for p in gConfig['AUTORANGE_HOST'] if host.endswith(p) or fnmatch.fnmatch(host, p)).next()
+                logging.debug('autorange pattern=%r match url=%r', pattern, self.path)
+                m = re.search('bytes=(\d+)-', headers.get('Range', ''))
+                start = int(m.group(1) if m else 0)
+                headers['Range'] = 'bytes=%d-%d' % (start, start+gConfig['AUTORANGE_MAXSIZE']-1)
+            except StopIteration:
+                pass
+				
         headers['X-Version'] = gConfig["VERSION"]
         skip_headers = frozenset(['Host', 'Vary', 'Via', 'X-Forwarded-For', 'Proxy-Authorization', 'Proxy-Connection', 'Upgrade', 'Keep-Alive'])
         strheaders = ''.join('%s: %s\r\n' % (k, v) for k, v in headers.iteritems() if k not in skip_headers)
@@ -932,7 +853,7 @@ class ProxyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                 #logging.info('OOPS, KeyError! Content-Type=%r', headers.get('Content-Type'))
                 response = data['response']
                 while 1:
-                    content = response.read(8192)
+                    content = response.read(gConfig['AUTORANGE_BUFSIZE'])
                     if not content:
                         response.close()
                         break
@@ -947,54 +868,88 @@ class ProxyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     def fetch(self, url, payload, method, headers):
         return urlfetch(url, payload, method, headers, gConfig['GOAGENT_FETCHHOST'], "https://" + gConfig["GOAGENT_FETCHHOST"] + "/fetch.py?", password=gConfig["GOAGENT_PASSWORD"])
 
-    def rangefetch(self, method, url, headers, payload, range_maxsize, current_length, content_length):
-        assert range_maxsize > 0, 'range_maxsize > 0 failed!'
-        while current_length < content_length:
-            headers['Range'] = 'bytes=%d-%d' % (current_length, min(current_length+range_maxsize-1, content_length-1))
-            request_method, request_headers, payload = pack_request(method, url, headers, payload, gConfig["GOAGENT_FETCHHOST"], password=gConfig["GOAGENT_PASSWORD"], fetchmaxsize=4194304)
-            request  = urllib2.Request(gConfig["GAE_FETCHSERVER"], data=payload, headers=request_headers)
-            request.get_method = lambda: request_method
-
-            for i in xrange(3):
-                try:
-                    response = urllib2.urlopen(request)
-                except urllib2.HTTPError as http_error:
-                    response = http_error
-                except urllib2.URLError as url_error:
-                    raise
-
-                if 'Set-Cookie' not in response.headers:
-                    logging.error('rangefetch %r return %s', url, response.code)
-                    time.sleep(2**(i+1))
-                    continue
-                response_headers, response_kwargs = decode_request(response.headers['Set-Cookie'])
-                response_status = int(response_kwargs['status'])
-                if 200 <= response_status < 400:
-                    break
+    def rangefetch(self, m, data):
+        m = map(int, m.groups())
+        if 'range' in self.headers:
+            content_range = 'bytes %d-%d/%d' % (m[0], m[1], m[2])
+            req_range = re.search(r'(\d+)?-(\d+)?', self.headers['range'])
+            if req_range:
+                req_range = [u and int(u) for u in req_range.groups()]
+                if req_range[0] is None:
+                    if req_range[1] is not None:
+                        if not (m[1]-m[0]+1==req_range[1] and m[1]+1==m[2]):
+                            return False
+                        if m[2] >= req_range[1]:
+                            content_range = 'bytes %d-%d/%d' % (req_range[1], m[2]-1, m[2])
                 else:
-                    logging.error('rangefetch %r return %s', url, response_status)
-                    time.sleep(2**(i+1))
-                    continue
+                    if req_range[1] is not None:
+                        if not (m[0]==req_range[0] and m[1]==req_range[1]):
+                            return False
+                        if m[2] - 1 > req_range[1]:
+                            content_range = 'bytes %d-%d/%d' % (req_range[0], req_range[1], m[2])
+            data['headers']['Content-Range'] = content_range
+            data['headers']['Content-Length'] = m[2]-m[0]
+        elif m[0] == 0:
+            data['code'] = 200
+            data['headers']['Content-Length'] = m[2]
+            del data['headers']['Content-Range']
 
-            if 300 < response_status < 400:
-                response_location = dict(response_headers).get('Location')
-                logging.info('Range Fetch Redirect(%r)', response_location)
-                if response_location:
-                    return self.rangefetch(method, response_location, headers, payload, range_maxsize, current_length, content_length)
-
-            content_range = dict(response_headers).get('Content-Range')
-            if not content_range:
-                logging.error('rangefetch "%s %s" failed: response_kwargs=%s response_headers=%s', method, url, response_kwargs, response_headers)
-                return
-
-            logging.info('>>>>>>>>>>>>>>> %s %d', content_range, content_length)
+        self.wfile.write('%s %d %s\r\n%s\r\n' % (self.protocol_version, data['code'], 'OK', data['headers']))
+        if 'response' in data:
+            response = data['response']
+            bufsize = gConfig['AUTORANGE_BUFSIZE']
+            if data['headers'].get('Content-Type', '').startswith('video/'):
+                bufsize = gConfig['AUTORANGE_WAITSIZE']
             while 1:
-                data = response.read(8192)
-                if not data or current_length >= content_length:
+                content = response.read(bufsize)
+                if not content:
                     response.close()
                     break
-                current_length += len(data)
-                self.wfile.write(data)
+                self.wfile.write(content)
+                bufsize = gConfig['AUTORANGE_BUFSIZE']
+        else:
+            self.wfile.write(data['content'])
+
+        start = m[1] + 1
+        end   = m[2] - 1
+        failed = 0
+        logging.info('>>>>>>>>>>>>>>> Range Fetch started(%r)', self.headers.get('Host'))
+        while start < end:
+            if failed > 16:
+                break
+            self.headers['Range'] = 'bytes=%d-%d' % (start, min(start+gConfig['AUTORANGE_MAXSIZE']-1, end))
+            retval, data = self.fetch(self.path, '', self.command, str(self.headers))
+            if retval != 0 or data['code'] >= 400:
+                failed += 1
+                seconds = random.randint(2*failed, 2*(failed+1))
+                logging.error('Range Fetch fail %d times, retry after %d secs!', failed, seconds)
+                time.sleep(seconds)
+                continue
+            if 'Location' in data['headers']:
+                logging.info('Range Fetch got a redirect location:%r', data['headers']['Location'])
+                self.path = data['headers']['Location']
+                failed += 1
+                continue
+            m = re.search(r'bytes\s+(\d+)-(\d+)/(\d+)', data['headers'].get('Content-Range',''))
+            if not m:
+                failed += 1
+                logging.error('Range Fetch fail %d times, data[\'headers\']=%s', failed, data['headers'])
+                continue
+            start = int(m.group(2)) + 1
+            logging.info('>>>>>>>>>>>>>>> %s %d' % (data['headers']['Content-Range'], end+1))
+            failed = 0
+            if 'response' in data:
+                response = data['response']
+                while 1:
+                    content = response.read(gConfig['AUTORANGE_BUFSIZE'])
+                    if not content:
+                        response.close()
+                        break
+                    self.wfile.write(content)
+            else:
+                self.wfile.write(data['content'])
+        logging.info('>>>>>>>>>>>>>>> Range Fetch ended(%r)', self.headers.get('Host'))
+        return True
 
     # reslove ssl from http://code.google.com/p/python-proxy/
     def _read_write(self):
