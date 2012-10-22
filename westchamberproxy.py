@@ -24,8 +24,6 @@ import config
 
 gConfig = config.gConfig
 
-assert gConfig['AUTORANGE_BUFSIZE'] <= gConfig['AUTORANGE_WAITSIZE'] <= gConfig['AUTORANGE_MAXSIZE']
-
 gConfig["BLACKHOLES"] = [
     '243.185.187.30', 
     '243.185.187.39', 
@@ -82,7 +80,7 @@ def hookInit():
             socket.create_connection = gOriginalCreateConnection
         socks.setdefaultproxy(socks.PROXY_TYPE_SOCKS5, gConfig["SOCKS_HOST"], gConfig["SOCKS_PORT"])
     else:
-        gConfig["HOST"][gConfig["GOAGENT_FETCHHOST"]] = "203.208.46.8"
+        gConfig["HOST"][gConfig["GOAGENT_FETCHHOST"]] = "203.208.46.6"
         socket.create_connection = socket_create_connection
 
 class SimpleMessageClass(object):
@@ -818,17 +816,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
             logging.info('autorange range=%r match url=%r', autorange, self.path)
             m = re.search('bytes=(\d+)-', autorange)
             start = int(m.group(1) if m else 0)
-            headers['Range'] = 'bytes=%d-%d' % (start, start+gConfig['AUTORANGE_MAXSIZE']-1)
-        elif host.endswith(gConfig['AUTORANGE_HOSTS_TAIL']):
-            try:
-                pattern = (p for p in gConfig['AUTORANGE_HOST'] if host.endswith(p) or fnmatch.fnmatch(host, p)).next()
-                logging.debug('autorange pattern=%r match url=%r', pattern, self.path)
-                m = re.search('bytes=(\d+)-', headers.get('Range', ''))
-                start = int(m.group(1) if m else 0)
-                headers['Range'] = 'bytes=%d-%d' % (start, start+gConfig['AUTORANGE_MAXSIZE']-1)
-            except StopIteration:
-                pass
-				
+            headers['Range'] = 'bytes=%d-%d' % (start, start+gConfig['AUTORANGE_MAXSIZE']-1)				
         headers['X-Version'] = gConfig["VERSION"]
         skip_headers = frozenset(['Host', 'Vary', 'Via', 'X-Forwarded-For', 'Proxy-Authorization', 'Proxy-Connection', 'Upgrade', 'Keep-Alive'])
         strheaders = ''.join('%s: %s\r\n' % (k, v) for k, v in headers.iteritems() if k not in skip_headers)
@@ -860,9 +848,9 @@ class ProxyHandler(BaseHTTPRequestHandler):
                     self.connection.sendall(content)
             if 'close' == headers.get('Connection',''):
                 self.close_connection = 1
-        except socket.error, (err, _):
+        except socket.error as e:
             # Connection closed before proxy return
-            if err in (10053, errno.EPIPE):
+            if e[0] in (10053, errno.EPIPE):
                 return
 
     def fetch(self, url, payload, method, headers):
