@@ -118,7 +118,7 @@ if __name__=='__main__':
     parser=argparse.ArgumentParser(description="Generate proxy auto-config rules.")
     parser.add_argument('-x', '--proxy',
                         dest = 'proxy',
-                        default = 'PROXY 127.0.0.1:1998; PROXY 127.0.0.1:8087',
+                        default = 'PROXY 127.0.0.1:1998',
                         nargs = '?',
                         help = "Proxy Server, examples: "
                                "SOCKS 127.0.0.1:8964; "
