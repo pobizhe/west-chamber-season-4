@@ -4,6 +4,7 @@
 import random
 GOAGENT_FETCHHOST_LIST = ["azlyfox-test.appspot.com","be2ower.appspot.com","benhot063.appspot.com","btbf006.appspot.com","btbf007.appspot.com","btbf008.appspot.com","careyproxy.appspot.com","cenjianneng11.appspot.com","chankenvin.appspot.com","crossgfw2011.appspot.com","crossgfw2012.appspot.com","crossgfw2013.appspot.com","crossgfw2014.appspot.com","crossgfw2015.appspot.com","cyanagt.appspot.com","dghabc1.appspot.com","gaehostport.appspot.com","galaxy-yp-g1.appspot.com","ghostflyinggo.appspot.com","gfw444444.appspot.com","goagent2166.appspot.com","goagent2177.appspot.com","goagent2188.appspot.com","goagent2199.appspot.com","goagent-hrd.appspot.com","gongxiang1900.appspot.com","gongxiang1901.appspot.com","gongxiang1902.appspot.com","gongxiang1903.appspot.com","gongxiang1904.appspot.com","gongxiang1905.appspot.com","gongxiang1906.appspot.com","gongxiang1907.appspot.com","gongxiang1908.appspot.com","gokunkka.appspot.com","gxfclql.appspot.com","houliapp.appspot.com","ianbhullar.appspot.com","iphonegae1.appspot.com","iphonegae2.appspot.com","iphonegae3.appspot.com","jiegoa.appspot.com","jndtydl005.appspot.com","laoliannanapp1.appspot.com","laoliannanapp2.appspot.com","lawshermanproxy1.appspot.com","lingyanshanxia6.appspot.com","mengqin1-hrd.appspot.com","mysblxjbs.appspot.com","onyourheart89.appspot.com","otw2as.appspot.com","pandafacegoagent.appspot.com","phmpui.appspot.com","pvotw01.appspot.com","pvotw02.appspot.com","pvotw03.appspot.com","pvotw04.appspot.com","pvotw05.appspot.com","pvotw06.appspot.com","pvotw07.appspot.com","pvotw08.appspot.com","r00tgfwrule.appspot.com","reedandbicgae0.appspot.com","reedandbicgae1.appspot.com","reedandbicgae2.appspot.com","reedandbicgae3.appspot.com","reedandbicgae4.appspot.com","reedandbicgae5.appspot.com","reedandbicgae6.appspot.com","reedandbicgae7.appspot.com","reedandbicgae8.appspot.com","reedandbicgae9.appspot.com","shadow-goagent.appspot.com","shadow-ma.appspot.com","spawnmhsbc1.appspot.com","spawnmhsbc2.appspot.com","sssh123451.appspot.com","sssh123452.appspot.com","tricle86.appspot.com","yong10478a1.appspot.com","vilanny2008.appspot.com","wcproxy-web.appspot.com","wcproxy1.appspot.com","whuproxy5.appspot.com","wukan2011.appspot.com","wukan2012.appspot.com","xiawei233.appspot.com","zellhuang1986.appspot.com","zlsgdhr0.appspot.com","zlsgdhr2.appspot.com","zlsgdhr5.appspot.com","zlsgdhr6.appspot.com","zlsgdhr7.appspot.com","zlsgdhr9.appspot.com"]
 
+
 gConfig = {
     "VERSION" : "20120720",
     "PROXY_TYPE": "goagent",# "goagent" or "socks5", can be created by `ssh -NfD 0.0.0.0:1234 user@hostname`
@@ -11,6 +12,8 @@ gConfig = {
     "SOCKS_PORT": 1234,
     "GOAGENT_FETCHHOST": GOAGENT_FETCHHOST_LIST[random.randint(0, len(GOAGENT_FETCHHOST_LIST)-1)], 
     "GOAGENT_PASSWORD": "",
+	"AUTORANGE_HOST": "AUTORANGE_HOSTS"[random.randint(0, len("AUTORANGE_HOSTS")-1)], 
+	"AUTORANGE_HOSTS_TAIL": tuple(x.rpartition('*')[2] for x in "AUTORANGE_HOSTS"),
     "AUTORANGE_BUFSIZE": 8192,
     "AUTORANGE_WAITSIZE": 524288,
     "AUTORANGE_MAXSIZE": 1048576,
@@ -107,6 +110,16 @@ gConfig = {
         "mpv.sandai.net" : "127.0.0.1",
         "asimgs.pplive.cn" : "127.0.0.1"
     },
+	"AUTORANGE_HOSTS" : {
+		".youtube.com",
+		".atm.youku.com",
+		".googlevideo.com",
+		"av.vimeo.com",
+		"smile-*.nicovideo.jp",
+		"video.*.fbcdn.net",
+		"s*.last.fm",
+		"x*.last.fm",
+	},
     "HSTS_DOMAINS" : {
         "developers.facebook.com": 1,
         "groups.google.com": 1,
