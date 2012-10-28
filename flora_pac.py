@@ -23,6 +23,8 @@ def generate_pac(proxy):
         "\nfunction FindProxyForURL(url, host)"
         "\n{"
         "\n"
+        "\n if (isPlainHostName(host)) return "DIRECT";"
+        "\n else"
         "\n    var list = ["
     )
     intLines = 0
@@ -37,12 +39,13 @@ def generate_pac(proxy):
         "\n    var PROXY ='%s';"
         "\n    var DIRECT ='DIRECT';"
         "\n"
-        "\n  if(isResolvable(host)){"
         "\n    var ip = dnsResolve(host);"
         "\n    for(var i=0;i<list.length;i++){"
         "\n        if (isInNet(ip, list[i][0], list[i][1])) {"
         "\n            if (! isInNet('202.106.199.39', list[i][0], list[i][1])) return direct;} "
         "\n   }"
+        "\n return PROXY;"
+        "\n"
         "\n"
         "\n  if ("
         "\n   shExpMatch(url,'*.mzxzx.com/*') ||"
@@ -65,8 +68,6 @@ def generate_pac(proxy):
         "\n   shExpMatch(url,'*chrislin2k.com/*')||"
         "\n   shExpMatch(url,'*bipics.net/*')||"
         "\n   shExpMatch(url,'*bisi-forum.com/*')) { return 'DIRECT'; }"
-        "\n}"
-        "\n return PROXY;"
         "\n}"
         "\n"%(proxy)
     )
