@@ -905,7 +905,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
         while start < end:
             if failed > 16:
                 break
-            self.headers['Range'] = 'bytes=%d-%d' % (start, min(start+1048576-1, end))
+            self.headers['Range'] = 'bytes=%d-%d' % (start, min(start+gConfig['AUTORANGE_MAXSIZE']-1, end))
             retval, data = self.fetch(self.path, '', self.command, str(self.headers))
             if retval != 0 or data['code'] >= 400:
                 failed += 1
@@ -929,7 +929,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
             if 'response' in data:
                 response = data['response']
                 while 1:
-                    content = response.read(8192)
+                    content = response.read(gConfig['AUTORANGE_BUFSIZE'])
                     if not content:
                         response.close()
                         break
