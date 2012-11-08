@@ -11,7 +11,7 @@
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 from SocketServer import ThreadingMixIn
 from httplib import HTTPResponse, BadStatusLine
-import os, re, socket, struct, threading, traceback, sys, select, urlparse, signal, urllib, urllib2, time, hashlib, binascii, zlib, httplib, errno, string, logging, random, ssl
+import os, re, socket, struct, threading, traceback, sys, select, urlparse, signal, urllib, urllib2, time, hashlib, binascii, zlib, httplib, errno, string, logging, random, ssl, heapq
 import DNS
 
 try:
@@ -23,6 +23,8 @@ import socks
 import config
 
 gConfig = config.gConfig
+
+dnsHeap = []
 
 gConfig["BLACKHOLES"] = [
     '243.185.187.30', 
@@ -80,10 +82,11 @@ def hookInit():
             socket.create_connection = gOriginalCreateConnection
         socks.setdefaultproxy(socks.PROXY_TYPE_SOCKS5, gConfig["SOCKS_HOST"], gConfig["SOCKS_PORT"])
     else:
-        gConfig["HOST"][gConfig["GOAGENT_FETCHHOST"]] = "203.208.46.6"
+        gConfig["HOST"][gConfig["GOAGENT_FETCHHOST"]] = gConfig["GOAGENT_IP"]
         socket.create_connection = socket_create_connection
 
 class SimpleMessageClass(object):
+
     def __init__(self, fp, seekable = 0):
         self.dict = dict = {}
         self.headers = headers = []
@@ -183,6 +186,7 @@ domainWhiteList = [
     "qqmail.com",
     "soso.com",
     "weibo.com",
+    "p.vip.weibo.com",
     "youku.com",
     "tudou.com",
     "ft.net",
@@ -410,8 +414,6 @@ class ProxyHandler(BaseHTTPRequestHandler):
     now = 0
     depth = 0
     MessageClass = SimpleMessageClass
-	
-
 
     def enableInjection(self, host, ip):
         self.depth += 1
@@ -454,7 +456,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
                 return self.dnsCache[host]["ip"]
 
         if gConfig["SKIP_LOCAL_RESOLV"]:
-            return self.getRemoteResolve(host, gConfig["REMOTE_DNS"])
+            return self.getRemoteResolve(host)
 
         try:
             ip = socket.gethostbyname(host)
@@ -470,21 +472,29 @@ class ProxyHandler(BaseHTTPRequestHandler):
                 logging.debug ("DNS system resolve: " + host + " => " + ip)
                 if isIpBlocked(ip):
                     print (host + " => " + ip + " blocked, try remote resolve")
-                    return self.getRemoteResolve(host, gConfig["REMOTE_DNS"])
+                    return self.getRemoteResolve(host)
                 return ip
         except:
             print "DNS system resolve Error: " + host
             ip = ""
-        return self.getRemoteResolve(host, gConfig["REMOTE_DNS"])
+        return self.getRemoteResolve(host)
 
-    def getRemoteResolve(self, host, dnsserver):
+    def getRemoteResolve(self, host):
+        dnsserver = dnsHeap[0][1] #heap top
+
         logging.info ("remote resolve " + host + " by " + dnsserver)
         reqProtocol = "udp"
         if "DNS_PROTOCOL" in gConfig:
             if gConfig["DNS_PROTOCOL"] in ["udp", "tcp"]:
                 reqProtocol = gConfig["DNS_PROTOCOL"]
+        try:
+            response = DNS.Request().req(name=host, qtype="A", protocol=reqProtocol, port=gConfig["DNS_PORT"], server=dnsserver)
+        except:
+            d = heapq.heappop(dnsHeap)
+            heapq.heappush(dnsHeap, (d[0]+1, d[1]))
+            logging.error(host + " resolve fail by " + dnsserver)
+            return host
 
-        response = DNS.Request().req(name=host, qtype="A", protocol=reqProtocol, port=gConfig["DNS_PORT"], server=dnsserver)
         #response.show()
         #print "answers: " + str(response.answers)
         ip = ""
@@ -558,7 +568,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
                     if type(gConfig[key]) == type(True):
                         if value == "true": gConfig[key] = True
                         if value == "false": gConfig[key] = False
-                    else:
+                    else: 
                         gConfig[key] = type(gConfig[key]) (value)
                     hookInit()
                 self.wfile.write(status + "\r\n\r\n" + value)
@@ -575,7 +585,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
                     
                 self.wfile.write("HTTP/1.1 302 FOUND\r\n" + "Location: /\r\n\r\n" + domain)
                 return
-				
+
             for key in gConfig:
                 if type(gConfig[key]) in [str,int] :
                     html = html.replace("{"+key+"}", str(gConfig[key]))
@@ -692,27 +702,27 @@ class ProxyHandler(BaseHTTPRequestHandler):
             exc_type, exc_value, exc_traceback = sys.exc_info()
 
             if exc_type == socket.error:
-                code, msg = str(exc_value).split('] ')
-                code = code[1:].split(' ')[1]
-                if code in ["32", "10053"]: #errno.EPIPE, 10053 is for Windows
+                code = exc_value[0]
+                if code in [32, 10053]: #errno.EPIPE, 10053 is for Windows
                     logging.info ("Detected remote disconnect: " + host)
                     return
-                if code in ["54", "11004", "10051", "timed out", "10054"]:
-				    return self.do_METHOD_Tunnel()
-                if code in ["61"]: #server not support injection
+                if code in [54, 10054]: #reset
+                    logging.info(host + ": reset from " + connectHost)
+                    gConfig["BLOCKED_IPS"][connectHost] = True
+                    return
+                if code in [61]: #server not support injection
                     if doInject:
                         logging.info("try not inject " + host)
                         domainWhiteList.append(host)
-                        return self.do_METHOD_Tunnel()
+                    return
  
             print "error in proxy: ", self.requestline
             print exc_type
             print str(exc_value) + " " + host
-            if exc_type == socket.timeout or (exc_type == socket.error and code in ["60", "110", "10060", "11001"]): #timed out, 10060 is for Windows
+            if exc_type == socket.timeout or (exc_type == socket.error and code in [60, 110, 10060]): #timed out, 10060 is for Windows
                 if not inWhileList:
                     logging.info ("add "+host+" to blocked domains")
-                    gConfig["BLOCKED_DOMAINS"][host] = True
-                    return self.do_METHOD_Tunnel()
+                    gConfig["BLOCKED_IPS"][connectHost] = True
     
     def do_GET(self):
         #some sites(e,g, weibo.com) are using comet (persistent HTTP connection) to implement server push
@@ -739,7 +749,8 @@ class ProxyHandler(BaseHTTPRequestHandler):
                 self._read_write()
                 return
         except:
-            pass
+            logging.info ("SSL: connect " + ip + " failed.")
+            gConfig["BLOCKED_IPS"][ip] = True
 
         if gConfig["PROXY_TYPE"]=="socks5":
             self.remote = socks.socksocket(socket.AF_INET, socket.SOCK_STREAM)
@@ -763,7 +774,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
             self._realrfile = self.rfile
             self._realwfile = self.wfile
             self._realconnection = self.connection
-            self.connection = ssl.wrap_socket(self.connection, keyfile=keyfile, certfile=certfile, server_side=True)
+            self.connection = ssl.wrap_socket(self.connection, keyfile, certfile, server_side=True)
             self.rfile = self.connection.makefile('rb', self.rbufsize)
             self.wfile = self.connection.makefile('wb', self.wbufsize)
             self.raw_requestline = self.rfile.readline(8192)
@@ -804,7 +815,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
             return
 
         if self.path[0] == '/':
-            self.path = 'http://%s%s' % (host, self.path)
+            self.path = 'https://%s%s' % (host, self.path)
         payload_len = int(headers.get('Content-Length', 0))
         if payload_len:
             payload = self.rfile.read(payload_len)
@@ -816,7 +827,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
             logging.info('autorange range=%r match url=%r', autorange, self.path)
             m = re.search('bytes=(\d+)-', autorange)
             start = int(m.group(1) if m else 0)
-            headers['Range'] = 'bytes=%d-%d' % (start, start+gConfig['AUTORANGE_MAXSIZE']-1)				
+            headers['Range'] = 'bytes=%d-%d' % (start, start+gConfig['AUTORANGE_MAXSIZE']-1)
         headers['X-Version'] = gConfig["VERSION"]
         skip_headers = frozenset(['Host', 'Vary', 'Via', 'X-Forwarded-For', 'Proxy-Authorization', 'Proxy-Connection', 'Upgrade', 'Keep-Alive'])
         strheaders = ''.join('%s: %s\r\n' % (k, v) for k, v in headers.iteritems() if k not in skip_headers)
@@ -966,48 +977,29 @@ class ProxyHandler(BaseHTTPRequestHandler):
                 break
 
 def start():
-    cnt = {}
-    for x in range(16):
-        dnsserver = gConfig['REMOTE_DNS']
-        try:
-            logging.info("DNS: " + dnsserver + " - %d"%x)
-            response = DNS.Request().req(name="www.twitter.com", qtype="A", protocol="udp", port=gConfig["DNS_PORT"], server=dnsserver, drop_blackholes=False)
-            for a in response.answers:
-                if a["typename"]=="CNAME":
-                    continue
-                ip = a["data"]
-                if ip not in cnt: cnt[ip] = 0
-                cnt[ip] += 1
-                if (ip not in gConfig["BLACKHOLES"]):
-                    if ip.split(".")[0] == "199": 
-                        continue
-                    print "### new fake ip: " + ip 
-                    gConfig["BLACKHOLES"].append(ip)
-                break
-        except:
-            print sys.exc_info()
-    print "DNS hijack test:" + str(cnt)
-
-    # Read Configuration
-    try :
-        import json
-        param = "?version=" + gConfig["VERSION"]
-        if len(gConfig["GOAGENT_FETCHHOST"]) > 0 and len(gConfig["GOAGENT_PASSWORD"]) == 0:
-            param += "&appid=" +gConfig["GOAGENT_FETCHHOST"]
-        url = (gConfig["ONLINE_CONFIG_URI"] + param)
-        logging.info("Load online config: " + url)
-        s = urllib2.urlopen(url)
-        jsonConfig = json.loads( s.read() )
-        for k in jsonConfig:
-            logging.info( "read online json config " + k + " => " + str(jsonConfig[k]))
-            if (k in gConfig) and (type(gConfig[k])==dict):
-                gConfig[k].update(jsonConfig[k])
-            gConfig[k] = jsonConfig[k]
-    except:
-        logging.info("Load online json config failed")
+    ## Read Configuration
+    #try :
+    #    import json
+    #    param = "?version=" + gConfig["VERSION"]
+    #    if len(gConfig["GOAGENT_FETCHHOST"]) > 0 and len(gConfig["GOAGENT_PASSWORD"]) == 0:
+    #        param += "&appid=" +gConfig["GOAGENT_FETCHHOST"]
+    #    url = (gConfig["ONLINE_CONFIG_URI"] + param)
+    #    logging.info("Load online config: " + url)
+    #    s = urllib2.urlopen(url)
+    #    jsonConfig = json.loads( s.read() )
+    #    for k in jsonConfig:
+    #        logging.info( "read online json config " + k + " => " + str(jsonConfig[k]))
+    #        if (k in gConfig) and (type(gConfig[k])==dict):
+    #            gConfig[k].update(jsonConfig[k])
+    #        gConfig[k] = jsonConfig[k]
+    #except:
+    #    logging.info("Load online json config failed")
 
     hookInit()
 
+    for d in gConfig["REMOTE_DNS_LIST"]:
+        heapq.heappush(dnsHeap, (1,d))
+    
     try:
         s = urllib2.urlopen(gConfig["BLOCKED_DOMAINS_URI"])
         for line in s.readlines():
