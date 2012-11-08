@@ -2,28 +2,31 @@
 # -*- coding: utf-8 -*-
 
 import random
-GOAGENT_FETCHHOST_LIST = ["azlyfox-test.appspot.com","be2ower.appspot.com","benhot063.appspot.com","btbf006.appspot.com","btbf007.appspot.com","btbf008.appspot.com","careyproxy.appspot.com","cenjianneng11.appspot.com","chankenvin.appspot.com","crossgfw2011.appspot.com","crossgfw2012.appspot.com","crossgfw2013.appspot.com","crossgfw2014.appspot.com","crossgfw2015.appspot.com","cyanagt.appspot.com","dghabc1.appspot.com","gaehostport.appspot.com","galaxy-yp-g1.appspot.com","ghostflyinggo.appspot.com","gfw444444.appspot.com","goagent2166.appspot.com","goagent2177.appspot.com","goagent2188.appspot.com","goagent2199.appspot.com","goagent-hrd.appspot.com","gongxiang1900.appspot.com","gongxiang1901.appspot.com","gongxiang1902.appspot.com","gongxiang1903.appspot.com","gongxiang1904.appspot.com","gongxiang1905.appspot.com","gongxiang1906.appspot.com","gongxiang1907.appspot.com","gongxiang1908.appspot.com","gokunkka.appspot.com","gxfclql.appspot.com","houliapp.appspot.com","ianbhullar.appspot.com","iphonegae1.appspot.com","iphonegae2.appspot.com","iphonegae3.appspot.com","jiegoa.appspot.com","jndtydl005.appspot.com","laoliannanapp1.appspot.com","laoliannanapp2.appspot.com","lawshermanproxy1.appspot.com","lingyanshanxia6.appspot.com","mengqin1-hrd.appspot.com","mysblxjbs.appspot.com","onyourheart89.appspot.com","otw2as.appspot.com","pandafacegoagent.appspot.com","phmpui.appspot.com","pvotw01.appspot.com","pvotw02.appspot.com","pvotw03.appspot.com","pvotw04.appspot.com","pvotw05.appspot.com","pvotw06.appspot.com","pvotw07.appspot.com","pvotw08.appspot.com","r00tgfwrule.appspot.com","reedandbicgae0.appspot.com","reedandbicgae1.appspot.com","reedandbicgae2.appspot.com","reedandbicgae3.appspot.com","reedandbicgae4.appspot.com","reedandbicgae5.appspot.com","reedandbicgae6.appspot.com","reedandbicgae7.appspot.com","reedandbicgae8.appspot.com","reedandbicgae9.appspot.com","shadow-goagent.appspot.com","shadow-ma.appspot.com","spawnmhsbc1.appspot.com","spawnmhsbc2.appspot.com","sssh123451.appspot.com","sssh123452.appspot.com","tricle86.appspot.com","yong10478a1.appspot.com","vilanny2008.appspot.com","wcproxy-web.appspot.com","wcproxy1.appspot.com","whuproxy5.appspot.com","wukan2011.appspot.com","wukan2012.appspot.com","xiawei233.appspot.com","zellhuang1986.appspot.com","zlsgdhr0.appspot.com","zlsgdhr2.appspot.com","zlsgdhr5.appspot.com","zlsgdhr6.appspot.com","zlsgdhr7.appspot.com","zlsgdhr9.appspot.com"]
+GOAGENT_FETCHHOST_LIST = ["azlyfox-test.appspot.com","careyproxy.appspot.com","crossgfw2011.appspot.com","crossgfw2012.appspot.com","crossgfw2013.appspot.com","crossgfw2014.appspot.com","crossgfw2015.appspot.com","dghabc.appspot.com","dghabc1.appspot.com","gaehostport.appspot.com","galaxy-yp-g1.appspot.com","ghostflyinggo.appspot.com","gfw22222.appspot.com","gfw33333.appspot.com","gfw44444.appspot.com","gfw55555.appspot.com","gfw66666.appspot.com","gfw77777.appspot.com","gfw88888.appspot.com","gfw99999.appspot.com","goagent00.appspot.com","goagent03.appspot.com","goagent04.appspot.com","goagent06.appspot.com","goagent08.appspot.com","goagent09.appspot.com","goagent13.appspot.com","goagent14.appspot.com","goagent18.appspot.com","goagent19.appspot.com","goagent20.appspot.com","goagent21.appspot.com","goagent24.appspot.com","goagent25.appspot.com","goagent26.appspot.com","goagent31.appspot.com","goagent33.appspot.com","goagent36.appspot.com","goagent37.appspot.com","goagent38.appspot.com","goagent39.appspot.com","goagent40.appspot.com","goagent41.appspot.com","goagent42.appspot.com","goagent43.appspot.com","goagent48.appspot.com","goagent49.appspot.com","goagent53.appspot.com","goagent57.appspot.com","goagent59.appspot.com","goagent60.appspot.com","goagent61.appspot.com","goagent62.appspot.com","goagent63.appspot.com","goagent64.appspot.com","goagent65.appspot.com","goagent66.appspot.com","goagent69.appspot.com","goagent70.appspot.com","goagent72.appspot.com","goagent73.appspot.com","goagent74.appspot.com","goagent75.appspot.com","goagent77.appspot.com","goagent78.appspot.com","goagent79.appspot.com","goagent81.appspot.com","goagent85.appspot.com","goagent89.appspot.com","goagent90.appspot.com","goagent91.appspot.com","goagent93.appspot.com","goagent94.appspot.com","goagent95.appspot.com","goagent96.appspot.com","goagent97.appspot.com","goagent98.appspot.com","goagent99.appspot.com","goagent100.appspot.com","goagent107.appspot.com","goagent2166.appspot.com","goagent2177.appspot.com","goagent2188.appspot.com","goagent2199.appspot.com","goagent-hrd.appspot.com","gongxiang1900.appspot.com","gongxiang1901.appspot.com","gongxiang1902.appspot.com","gongxiang1903.appspot.com","gongxiang1904.appspot.com","gongxiang1905.appspot.com","gongxiang1906.appspot.com","gongxiang1907.appspot.com","gongxiang1912.appspot.com","gongxiang1913.appspot.com","gongxiang1914.appspot.com","gongxiang1915.appspot.com","gongxiang1916.appspot.com","gongxiang1917.appspot.com","gongxiang1918.appspot.com","gxfclql.appspot.com","houliapp.appspot.com","ianbhullar.appspot.com","iphonegae1.appspot.com","iphonegae2.appspot.com","iphonegae3.appspot.com","jndtydl005.appspot.com","laoliannanapp1.appspot.com","laoliannanapp2.appspot.com","lawshermanproxy1.appspot.com","lawshermanproxy2.appspot.com","lingyanshanxia.appspot.com","lingyanshanxia1.appspot.com","lingyanshanxia2.appspot.com","lingyanshanxia3.appspot.com","lingyanshanxia4.appspot.com","lingyanshanxia5.appspot.com","lingyanshanxia6.appspot.com","lingyanshanxia7.appspot.com","lingyanshanxia8.appspot.com","lingyanshanxia9.appspot.com","mengqin1-hrd.appspot.com","mysblxjbs.appspot.com","my-xberry00.appspot.com","my-xberry01.appspot.com","my-xberry10.appspot.com","my-xberry12.appspot.com","onyourheart89.appspot.com","pandafacegoagent.appspot.com","phmpui.appspot.com","pvotw01.appspot.com","pvotw02.appspot.com","pvotw03.appspot.com","pvotw04.appspot.com","pvotw05.appspot.com","pvotw06.appspot.com","pvotw07.appspot.com","pvotw08.appspot.com","r00tgfwrule.appspot.com","reedandbicgae0.appspot.com","reedandbicgae1.appspot.com","reedandbicgae2.appspot.com","reedandbicgae3.appspot.com","reedandbicgae4.appspot.com","reedandbicgae5.appspot.com","reedandbicgae6.appspot.com","reedandbicgae7.appspot.com","reedandbicgae8.appspot.com","reedandbicgae9.appspot.com","shadow-goagent.appspot.com","shadow-ma.appspot.com","spawnmhsbc1.appspot.com","spawnmhsbc2.appspot.com","sssh123451.appspot.com","sssh123452.appspot.com","sssh123453.appspot.com","sssh123454.appspot.com","sssh123455.appspot.com","tricle86.appspot.com","yong10478a1.appspot.com","vilanny2008.appspot.com","wcproxy-web.appspot.com","wcproxy1.appspot.com","whuproxy1.appspot.com","whuproxy2.appspot.com","whuproxy3.appspot.com","whuproxy4.appspot.com","whuproxy5.appspot.com","wukan2012.appspot.com","xiawei233.appspot.com","zellhuang1986.appspot.com"] # 2.1.0 :"gfw000000.appspot.com","gfw111111.appspot.com","gfw222222.appspot.com","gfw333333.appspot.com","gfw444444.appspot.com","gfw555555.appspot.com","gfw666666.appspot.com","gfw777777.appspot.com","gfw888888.appspot.com","gfw999999.appspot.com",
 
 gConfig = {
-    "VERSION" : "20120720",
+    "VERSION" : "20121022",
     "PROXY_TYPE": "goagent",# "goagent" or "socks5", can be created by `ssh -NfD 0.0.0.0:1234 user@hostname`
     "SOCKS_HOST": "localhost",
     "SOCKS_PORT": 1234,
     "GOAGENT_FETCHHOST": GOAGENT_FETCHHOST_LIST[random.randint(0, len(GOAGENT_FETCHHOST_LIST)-1)], 
     "GOAGENT_PASSWORD": "",
+    "GOAGENT_IP": "www.google.com",
     "AUTORANGE_BUFSIZE": 8192,
     "AUTORANGE_WAITSIZE": 524288,
     "AUTORANGE_MAXSIZE": 1048576,
     "BLOCKED_DOMAINS_URI" : "https://raw.github.com/gdwgi1225/west-chamber-season-3/master/status/timedout.txt",#"https://raw.github.com/liruqi/west-chamber-season-3/master/west-chamber-proxy/status/timedout.txt"
     "ONLINE_CONFIG_URI" : "http://gdwgi1225.sinaapp.com/config.php",#"http://wcproxy.sinaapp.com/config.php"
-    "REMOTE_DNS" : "168.95.1.1", # "168.95.1.1","168.95.192.1","208.67.220.220","208.67.222.222"
-    "DNS_PROTOCOL": "tcp",
+    "REMOTE_DNS_LIST" : ["216.239.32.10", "216.239.34.10", "216.239.36.10", "216.239.38.10", "202.181.202.130", "202.181.202.140", "203.119.1.3", "202.181.224.3", "202.181.224.194", "203.119.1.1"], #"202.216.228.18", "168.95.1.1", "168.95.192.1","168.95.192.2", 192.41.162.32,192.41.162.34,199.7.83.42,128.8.10.90,192.33.4.12, 192.228.79.201,192.228.79.201,192.228.79.201,192.228.79.201,,128.8.10.110,128.8.10.154, 128.8.10.201, 128.8.10.245
+    "DNS_PROTOCOL": "udp",
     "DNS_PORT": 53,
     "DNS_CACHE_MAXSZ" : 1024,
     "SKIP_LOCAL_RESOLV" : True,
     "CONFIG_ON_STARTUP" : False,
     "LOCAL_PORT" : 1998,
-    "HOST" : {},
+    "HOST" : {
+        "plus.google.com" : "74.125.31.102"
+    },
     "ADSHOSTON" : True,
     "ADSHOST" : {
         "stat.youku.com" : "0.0.0.0",
@@ -153,7 +156,6 @@ gConfig = {
     },
     "BLOCKED_DOMAINS": {
         "baidu.jp" : True,
-        "search.twitter.com" : True,
         "www.baidu.jp" : True,
         "www.nicovideo.jp": True,
         "www.dailymotion.com": True,
@@ -187,6 +189,7 @@ gConfig = {
         "50.22.53.155": 1,
         "50.63.43.1": 1,
         "72.32.231.8": 1,
+        "72.52.81.24": 1,
         "72.233.2.58": 1,
         "74.125.31.141": 1,
         "74.125.39.102": 1,
@@ -195,7 +198,7 @@ gConfig = {
         "180.235.96.30": 1,
         "204.236.224.226": 1,
         "69.163.223.11": 1, #letscorp.net
-        "199.59.148.12": 1, "199.59.149.210": 1, #t.co
+        "106.187.39.89": 1,
     },
     "BLOCKED_IPS_M16": {
         "174.129" : 1,
@@ -203,9 +206,14 @@ gConfig = {
     },
     "BLOCKED_IPS_M24": {
         "199.16.156": 1,
+        "69.171.224": 1,
         "66.220.149": 1,
         "66.220.156": 1,
+        "74.125.127": 1,
         "208.109.6": 1,
+        "199.59.148": 1,
+        "199.59.149": 1,
+        "199.59.150": 1,
     },
     "PAGE_RELOAD_HTML": """<html>
     <head>
@@ -395,202 +403,7 @@ blockedIpString += """74.125.71.88
 74.125.127.91
 74.125.127.93
 74.125.127.99
-74.125.127.101
-74.125.127.102
-74.125.127.105
-74.125.127.108
-74.125.127.109
-74.125.127.113
-74.125.127.121
-74.125.127.128
-74.125.127.130
-74.125.127.132
-74.125.127.136
-74.125.127.138
-74.125.127.141
-74.125.127.150
-74.125.127.160
-74.125.127.161
-74.125.127.162
-74.125.127.163
-74.125.127.188
-74.125.127.190
-74.125.127.192
-74.125.127.204
-74.125.127.205
-74.125.127.206
-74.125.127.207
-74.125.127.208
 """
-
-# 199.59.150.0/24
-blockedIpString += """199.59.150.7
-199.59.150.8
-199.59.150.9
-199.59.150.10
-199.59.150.11
-199.59.150.12
-199.59.150.39
-199.59.150.40
-199.59.150.41
-199.59.150.42
-199.59.150.43
-199.59.150.44
-"""
-
-# 199.59.149.0/24
-blockedIpString += """199.59.149.65
-199.59.149.66
-199.59.149.67
-199.59.149.68
-199.59.149.70
-199.59.149.76
-199.59.149.77
-199.59.149.81
-199.59.149.82
-199.59.149.83
-199.59.149.84
-199.59.149.86
-199.59.149.87
-199.59.149.88
-199.59.149.89
-199.59.149.90
-199.59.149.91
-199.59.149.92
-199.59.149.93
-199.59.149.94
-199.59.149.97
-199.59.149.98
-199.59.149.99
-199.59.149.100
-199.59.149.101
-199.59.149.105
-199.59.149.106
-199.59.149.107
-199.59.149.108
-199.59.149.109
-199.59.149.110
-199.59.149.111
-199.59.149.112
-199.59.149.113
-199.59.149.114
-199.59.149.115
-199.59.149.116
-199.59.149.117
-199.59.149.118
-199.59.149.119
-199.59.149.120
-199.59.149.121
-199.59.149.122
-199.59.149.123
-199.59.149.124
-199.59.149.125
-199.59.149.129
-199.59.149.130
-199.59.149.131
-199.59.149.132
-199.59.149.133
-199.59.149.134
-199.59.149.135
-199.59.149.136
-199.59.149.138
-199.59.149.139
-199.59.149.161
-199.59.149.162
-199.59.149.163
-199.59.149.164
-199.59.149.165
-199.59.149.166
-199.59.149.193
-199.59.149.194
-199.59.149.195
-199.59.149.225
-199.59.149.226
-199.59.149.227
-199.59.149.228
-199.59.149.229
-199.59.149.230
-199.59.149.231
-199.59.149.232
-199.59.149.233
-199.59.149.234
-199.59.149.235
-199.59.149.240
-199.59.149.243
-199.59.149.245
-199.59.149.246
-"""
-
-# 199.59.148.0/24
-blockedIpString += """199.59.148.6
-199.59.148.7
-199.59.148.8
-199.59.148.9
-199.59.148.10
-199.59.148.11
-199.59.148.12
-199.59.148.15
-199.59.148.20
-199.59.148.21
-199.59.148.22
-199.59.148.23
-199.59.148.60
-199.59.148.69
-199.59.148.82
-199.59.148.84
-199.59.148.85
-199.59.148.87
-199.59.148.88
-199.59.148.89
-199.59.148.92
-199.59.148.96
-199.59.148.97
-199.59.148.102
-199.59.148.104
-199.59.148.105
-199.59.148.106
-199.59.148.124
-199.59.148.125
-199.59.148.126
-199.59.148.129
-199.59.148.130
-199.59.148.131
-199.59.148.132
-199.59.148.133
-199.59.148.135
-199.59.148.139
-199.59.148.140
-199.59.148.181
-199.59.148.193
-199.59.148.194
-199.59.148.195
-199.59.148.201
-199.59.148.204
-199.59.148.206
-199.59.148.207
-199.59.148.208
-199.59.148.209
-199.59.148.213
-199.59.148.215
-199.59.148.216
-199.59.148.217
-199.59.148.218
-199.59.148.219
-199.59.148.222
-199.59.148.224
-199.59.148.226
-199.59.148.230
-199.59.148.231
-199.59.148.232
-199.59.148.233
-199.59.148.234
-199.59.148.235
-199.59.148.236
-199.59.148.237
-199.59.148.238
-199.59.148.239
-199.59.148.240
-199.59.148.241"""
 
 
 for ip in blockedIpString.split("\n"):
