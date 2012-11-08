@@ -5,6 +5,8 @@ function FindProxyForURL(url, host)
 {
 
     var list = [
+        ['192.168.0.0', '255.255.255.0'],
+        ['192.168.1.0', '255.255.255.0'],
         ['1.0.1.0', '255.255.255.0'],
         ['1.0.2.0', '255.255.254.0'],
         ['1.0.8.0', '255.255.248.0'],
@@ -631,6 +633,7 @@ function FindProxyForURL(url, host)
         ['103.21.140.0', '255.255.252.0'],
         ['103.21.176.0', '255.255.252.0'],
         ['103.21.208.0', '255.255.252.0'],
+        ['103.21.240.0', '255.255.252.0'],
         ['103.22.0.0', '255.255.252.0'],
         ['103.22.4.0', '255.255.252.0'],
         ['103.22.8.0', '255.255.252.0'],
@@ -678,6 +681,7 @@ function FindProxyForURL(url, host)
         ['103.29.128.0', '255.255.252.0'],
         ['103.29.132.0', '255.255.252.0'],
         ['103.29.136.0', '255.255.252.0'],
+        ['103.30.20.0', '255.255.252.0'],
         ['103.246.8.0', '255.255.252.0'],
         ['103.246.12.0', '255.255.252.0'],
         ['103.246.120.0', '255.255.252.0'],
@@ -3533,37 +3537,54 @@ function FindProxyForURL(url, host)
         ['223.255.252.0', '255.255.254.0']
     ];
 
+    var urls = [
+		'*.168xs.com/*',
+		'*.shoudian.org/*',
+		'*.xiuzhenba.com/*',
+		'*.shuax.com/*',
+		'*.mzxzx.com/*',
+		'*.oko.co/*',
+		'*hioo*',
+		'*.gg.ma/*',
+		'*.qs99w.com/*',
+		'*.unkzone.net/*',
+		'*bipics.net/*',
+		'*pen.io*',
+		'*cl.orc.st*',
+		'*.5917.me/*',
+		'*.dmxf.com/*',
+		'*.www.galbus.us/*',
+		'*.animex9.com/*',
+		'*.h5gal.net/*',
+		'*.2tu.me/*',
+		'*.tumblr.com/*',
+		'*35xs*',
+		'*.hkpic.net/*',
+		'*.myforum.com.hk/*',
+		'*.sankakucomplex.com/*',
+		'*.sankakustatic.com/*',
+		'*chrislin2k.com/*',
+		'*setianshi.org/*',
+		'*bipics.net/*',
+		'*hkbisi.com/*',
+		'*hkbc.net/*',
+		'*pornhub*',
+		'*tube8*',
+		'*bisi-forum.com/*',
+		'*dell*',
+	];
+	
     var PROXY ='PROXY 127.0.0.1:1998';
     var DIRECT ='DIRECT';
 
-  if(isResolvable(host)){
+    for (i=0;i<urls.length;i++) {
+    if (shExpMatch(url,urls[i])) { return DIRECT;}
+	}
     var ip = dnsResolve(host);
-    for(var i=0;i<list.length;i++){
+    for(i=0;i<list.length;i++){
         if (isInNet(ip, list[i][0], list[i][1])) {
-            if (! isInNet('202.106.199.39', list[i][0], list[i][1])) return direct;} 
-   }
-
-  if (
-   shExpMatch(url,'*.mzxzx.com/*') ||
-   shExpMatch(url,'*hioo*') ||
-   shExpMatch(url,'*.gg.ma/*') ||
-   shExpMatch(url,'*.qs99w.com/*') ||
-   shExpMatch(url,'*.unkzone.net/*') ||
-   shExpMatch(url,'*bipics.net/*') ||
-   shExpMatch(url,'*.pen.io/*') ||
-   shExpMatch(url,'*cl.orc.st*')||
-   shExpMatch(url,'*.5917.me/*') ||
-   shExpMatch(url,'*.dmxf.com/*') ||
-   shExpMatch(url,'*.h5gal.com/*') ||
-   shExpMatch(url,'*.tumblr.com/*') ||
-   shExpMatch(url,'*35xs*') ||
-   shExpMatch(url,'*.hkpic.net/*') ||
-   shExpMatch(url,'*.myforum.com.hk/*') ||
-   shExpMatch(url,'*.sankakucomplex.com/*')||
-   shExpMatch(url,'*.sankakustatic.com/*')||
-   shExpMatch(url,'*chrislin2k.com/*')||
-   shExpMatch(url,'*bipics.net/*')||
-   shExpMatch(url,'*bisi-forum.com/*')) { return 'DIRECT'; }
-}
+            if (! isInNet('202.106.199.39', list[i][0], list[i][1])) return direct;}
+    }
  return PROXY;
+  
 }
