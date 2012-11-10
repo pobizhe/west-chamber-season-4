@@ -4,12 +4,21 @@
 
     iptables -I FORWARD -p tcp -m tcp --tcp-flags RST RST -j DROP
     
-  目前这种方法还有问题。第一次丢包可以成功，第二次会被GFW发的SYN+ACK 干扰，而且这个非RESET的干扰包似乎不太好丢。
+目前这种方法还有问题。第一次丢包可以成功，第二次会被GFW发的SYN+ACK 干扰，而且这个非RESET的干扰包似乎不太好丢, 因为iptables 没有针对SEQ 错乱的丢包规则。
+学术上, 这种攻击被定义为 Off-Path TCP Sequence Number Inference Attack [PDF](http://web.eecs.umich.edu/~zhiyunq/pub/oakland12_TCP_sequence_number_inference.pdf)
+另外, GFW 对reset 惩罚, 最近(2012.11.09) 改成临时性的IP封锁. 这样丢包就没太大意义了. 
 
 DoS攻击
 -------
-这种方式暂时不能翻墙，但是，理论上可以增加GFW的负载。期望是，攻击者达到一定数量之后，能够降低GFW 的reset 判断精度，或者放弃对CRLF 注入的reset。
-使用方法：cd west-chamber-proxy; python dos.py
+这种方式暂时不能翻墙，但是，理论上可以增加GFW的负载。期望是，攻击者达到一定数量之后，能够降低GFW 的reset 判断精度，或者迫使其放弃对CRLF 注入的reset。
+使用方法：
+
+    cd west-chamber-proxy;
+    sh dos.sh start 
+    sh dos.sh status 
+    sh dos.sh stop #停止
+
+Windows 用户可以直接双机 dos.py （可以同时打开N个
 
 修改本地hosts文件
 ----------------
@@ -18,13 +27,16 @@ DoS攻击
 
 反DNS污染
 -------
-修改hosts 文件部分解决了污染问题, 但是很可能不全. 有两个办法可以实现反DNS污染
+修改hosts 文件部分解决了污染问题, 但是很可能不全. 要彻底解决DNS污染，设置国外的DNS 服务器，并本机丢弃GFW的 DNS伪包。
 
-自建DNS 服务器。
+    a) 国外DNS服务器。大家比较熟悉的可能是[Google Public DNS](http://code.google.com/speed/public-dns/)。但是Google DNS经常出问题。先推荐两个，台湾中华电信的168.95.1.1 和 [OpenDNS](http://www.opendns.com/), 还不行，那就上午搜一个国外的DNS。
 
-系统要求：Linux 或 Mac。
+    b) 自建DNS 服务器。系统要求：Linux 或 Mac。可以用dnsmasq 做本地的DNS服务器。如果在国内有Linux服务器，建议做一个DNS服务小范围共享。
 
-可以用dnsmasq 做本地的DNS服务器。如果在国内有Linux服务器，建议做一个DNS服务小范围共享。
+    c) 丢弃DNS伪包。
+    * Linux: 需要有iptables。如果 iptables 有 u32模块(或者你能自己搞定安装一个)，可以直接用本项目中的 client.sh；否则，只能自己编译原始的[西厢项目](http://code.google.com/p/scholarzhang)，具体操作看西厢的文档。
+
+其它值得尝试的方法：[如何本地避免GFW的DNS污染](http://liruqi.info/post/28775426009/how-to-avoid-dns-hijack-locally)
 
 项目目的
 --------
@@ -38,7 +50,7 @@ DoS攻击
 
     1. 下载[客户端](http://code.google.com/p/west-chamber-season-3/downloads/list) ，解压缩，双击 exe
     2. 把浏览器HTTP/HTTPS 代理设置为 127.0.0.1:1998，或者使用pac 脚本设置自动代理。
-    3. Windows 版本更新比较慢。如果希望使用最新代码，先下载 python 2.7，[32位](http://python.org/ftp/python/2.7.3/python-2.7.3.msi) / [64位](http://python.org/ftp/python/2.7.3/python-2.7.3.amd64.msi) ，然后下载[代码](https://github.com/gdwgi1225/west-chamber-season-3/zipball/master)，解压缩，进入 west-chamber-proxy 文件夹，双击 westchamberproxy.py。
+    3. Windows 版本更新比较慢。如果希望使用最新代码，先下载 python 2.7，[32位](http://python.org/ftp/python/2.7.2/python-2.7.2.msi) / [64位](http://python.org/ftp/python/2.7.2/python-2.7.2.amd64.msi) ，然后下载[代码](https://github.com/liruqi/west-chamber-season-3/zipball/master)，解压缩，进入 west-chamber-proxy 文件夹，双击 westchamberproxy.py。
 
 * Mac 
     1. 去GoAgentX for WCProxy的[下载列表](https://github.com/liruqi/GoAgentX/downloads)下载最新的客户端，解压缩，双击打开
@@ -46,7 +58,7 @@ DoS攻击
     
 * Linux
 
-    1. 下载项目代码: [zip](https://github.com/gdwgi1225/west-chamber-season-3/zipball/master)
+    1. 下载项目代码: [zip](https://github.com/liruqi/west-chamber-season-3/zipball/master)
     2. 解压缩，打开终端，cd 到代码目录，cd west-chamber-proxy; 启动代理：./wcproxy start；关闭代理：./wcproxy stop。
     3. 把浏览器HTTP/HTTPS 代理设置为 127.0.0.1:1998，或者使用pac 脚本设置自动代理。
 
@@ -105,30 +117,6 @@ DoS攻击
 --------
 在[这里](https://github.com/liruqi/west-chamber-season-3/issues) 反馈各种问题。 
 
-软件更新
--------
-日常会有配置文件更新。如果有程序的更新，会在下载页面中给出。
-
 其它工具
 --------
 [icefox](https://code.google.com/p/icefox/) 原理跟西厢代理类似,但是此软件可以直接修改系统代理的设置,更方便.目测没解决IP封锁问题.
-
-TODO
-----
-* [ALL] 把80端口和443端口的IP封锁区分开来
-* [Android] 实现系统HTTP 代理的设置，这样系统自带的浏览器也可以用。
-* [Android] 用 Java 重写代理逻辑，用户就不用下载依赖的 python 软件包。
-
-UPDATE LOG
----
-* 2011-11-23 解决android 客户端的远程 dns 解析的问题。
-* 2011-11-24 对于IP被封锁的站点，走网页代理。
-* 2012-01-08 联通的WLAN热点下失效的问题，联通自己解决了。[ref](http://weibo.com/1641981222/xFx46sR4c)
-* 2012-01-05 HTTPS 支持。
-* 2012-01-28 Windows 平台支持；国内站点 Comet 连接，停止重定向到网页代理。
-* 2012-01-31 停止维护chrome extension, 而是类似于goagent，直接提供代理程序，以及 SwitchySharp 备份。
-* 2012-02-24 修复Google plus 链接重定向错误 (plus.url.google.com => plus.url.google.com.hk)
-* 2012-03-17 代码重构。python 脚本中去掉了进程控制，增加了多个命令行参数，进程控制由shell 脚本实现。 
-* 2012-04-14 DNS解析结果中，移除被GFW 封锁的IP。
-* 2012-04-14 支持UDP方式DNS解析，并丢弃GFW伪包。
-* 2012-04-24 基本完成与GoAgent 的整合，直连失败后会走GoAgent 代理。
