@@ -630,19 +630,24 @@ class ProxyHandler(BaseHTTPRequestHandler):
                     return self.do_METHOD_Tunnel()
             else:
                 self.remote = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                logging.debug( "connect to " + host + ":" + str(port))
+                logging.debug( host + ":connect to " + connectHost + ":" + str(port))
                 self.remote.connect((connectHost, port))
                 if doInject: 
                     logging.info ("inject http for "+host)
-                    self.remote.send("\r\n\r\n")
+                    self.remote.send("\r\r\r\r\r\r\r\n\r\r\r\r\r")
 
             # Send requestline
             if path == "":
                 path = "/"
             print " ".join((self.command, path, self.request_version)) + "\r\n"
             self.remote.send(" ".join((self.command, path, self.request_version)) + "\r\n")
-                
-            self.remote.send(str(self.headers) + "\r\n")
+            
+            if doInject: 
+                logging.info ("inject http for "+host)
+                del self.headers["Host"]
+                self.remote.send(str(self.headers) + "Host: " + host + "\r\n\r\n")
+            else:
+                self.remote.send(str(self.headers) + "\r\n")
             # Send Post data
             if(self.command=='POST'):
                 self.remote.send(self.rfile.read(int(self.headers['Content-Length'])))
@@ -977,6 +982,27 @@ class ProxyHandler(BaseHTTPRequestHandler):
                 break
 
 def start():
+    cnt = {}
+    for x in range(16):
+        dnsserver = gConfig["REMOTE_DNS_LIST"][0]
+        try:
+            response = DNS.Request().req(name="www.twitter.com", qtype="A", protocol="udp", port=gConfig["DNS_PORT"], server=dnsserver, drop_blackholes=False)
+            for a in response.answers:
+                if a["typename"]=="CNAME":
+                    continue
+                ip = a["data"]
+                if ip not in cnt: cnt[ip] = 0
+                cnt[ip] += 1
+                if (ip not in gConfig["BLACKHOLES"]):
+                    if ip.split(".")[0] == "199": 
+                        continue
+                    print "### new fake ip: " + ip 
+                    gConfig["BLACKHOLES"].append(ip)
+                break
+        except:
+            print sys.exc_info()
+    print "DNS hijack test:" + str(cnt)
+
     ## Read Configuration
     #try :
     #    import json
