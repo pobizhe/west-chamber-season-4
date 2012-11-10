@@ -3581,10 +3581,10 @@ function FindProxyForURL(url, host)
     if (shExpMatch(url,urls[i])) { return DIRECT;}
 	}
     var ip = dnsResolve(host);
-    for(i=0;i<list.length;i++){
+    for (i=0;i<list.length;i++) {
         if (isInNet(ip, list[i][0], list[i][1])) {
             if (! isInNet('202.106.199.39', list[i][0], list[i][1])) return direct;}
     }
  return PROXY;
-  
+
 }
