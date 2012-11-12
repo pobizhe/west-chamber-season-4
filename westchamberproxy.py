@@ -988,7 +988,7 @@ def start():
         try:
             response = DNS.Request().req(name="www.twitter.com", qtype="A", protocol="udp", port=gConfig["DNS_PORT"], server=dnsserver, drop_blackholes=False)
             for a in response.answers:
-                if a["typename"]=="CNAME":
+                if a["typename"] == "CNAME":
                     continue
                 ip = a["data"]
                 if ip not in cnt: cnt[ip] = 0
