@@ -17,7 +17,7 @@ gConfig = {
     "AUTORANGE_MAXSIZE": 1048576,
     "BLOCKED_DOMAINS_URI" : "https://raw.github.com/gdwgi1225/west-chamber-season-3/master/status/timedout.txt",#"https://raw.github.com/liruqi/west-chamber-season-3/master/west-chamber-proxy/status/timedout.txt"
     "ONLINE_CONFIG_URI" : "http://gdwgi1225.sinaapp.com/config.php",#"http://wcproxy.sinaapp.com/config.php"
-    "REMOTE_DNS_LIST" : ["168.95.1.1", "168.95.192.1","168.95.192.2", "202.181.202.140", "203.119.1.1", "168.95.192.33", "205.171.2.25", "205.171.2.26", "205.171.3.26", "164.124.101.2", "203.73.23.99", "203.73.23.98", "202.181.224.2", "202.181.224.19", "165.87.13.129", "165.87.201.244", "165.87.13.129"],
+    "REMOTE_DNS_LIST" : ["168.95.1.1", "168.95.192.1","168.95.192.2", "202.181.202.140", "203.119.1.1", "168.95.192.33", "205.171.2.25", "205.171.2.26", "205.171.3.26", "203.73.23.99", "203.73.23.98", "202.181.224.2", "202.181.224.19", "165.87.13.129", "165.87.201.244", "165.87.13.129"],
     "DNS_PROTOCOL": "udp",
     "DNS_PORT": 53,
     "DNS_CACHE_MAXSZ" : 1024,
