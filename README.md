@@ -1,4 +1,9 @@
-﻿双向丢包
+﻿数据统计
+-------
+做了一些有意思的不完全统计数据：[被封锁的IP列表](https://github.com/liruqi/west-chamber-season-3/blob/master/west-chamber-proxy/status/timedout-ip.list) 以及被[IP封锁的域名列表](https://github.com/liruqi/west-chamber-season-3/blob/master/west-chamber-proxy/status/timedout.txt)
+另外，打算再维护一份被RESET的域名列表。
+
+双向丢包
 --------
 服务器、客户端同时丢掉GFW 的干扰包。服务器上脚本 server.sh ，客户端脚本 client.sh. 如果路由器可以设置 iptables 防火墙(如Tomato 或 OpenWRT)，直接在路由器上设置即可：
 
@@ -120,3 +125,4 @@ Windows 用户可以直接双机 dos.py （可以同时打开N个
 其它工具
 --------
 [icefox](https://code.google.com/p/icefox/) 原理跟西厢代理类似,但是此软件可以直接修改系统代理的设置,更方便.目测没解决IP封锁问题.
+[jjproxy](https://github.com/liruqi/jjproxy) 还是通过HTTP注入,不过由于注入方式不遵守RFC,很多网站都会有问题,但是看blogspot 还可以.
