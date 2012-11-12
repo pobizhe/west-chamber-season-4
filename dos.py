@@ -1,6 +1,16 @@
+#!/usr/bin/python
+
 import socket,sys,random,errno,argparse,os
 import config
 
+def connectip(ip):
+    remote = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    remote.settimeout(6)
+    remote.connect((oip, 80))
+    remote.send("\r\n\r\n" + "GET /theconnectionwasreset HTTP/1.1\r\nHost: twitter.com\r\n\r\n")
+    remote.recv(1024*64)
+    #print oip, "good"
+    remote.close()
 
 refusedipset = {}
 badipset = {}
@@ -10,14 +20,16 @@ blockedIpString = rf.read()
 rf.close()
 
 for ip in blockedIpString.split("\n"):
-    badipset[ip]=1
+    if len(ip) >= 7:
+        badipset[ip]=1
 
 rf = open("status/refused-ip.list", "r")
 resetIpString = rf.read()
 rf.close()
 
 for ip in resetIpString.split("\n"):
-    refusedipset[ip]=1
+    if len(ip) >= 7: 
+        refusedipset[ip]=1
 
 timeoutf = 0
 resetf = 0
@@ -25,7 +37,34 @@ resetf = 0
 parser = argparse.ArgumentParser(description='gfw doser')
 parser.add_argument('--action', default='', help='set to a if logging')
 gOptions = parser.parse_args()
-if gOptions.action == "a":
+
+
+if gOptions.action == "c": #check
+    timeoutf = open("status/timedout-ip-checked.list", "r")
+    timeoutString = timeoutf.read()
+    timeoutf.close()
+
+    timeoutList = timeoutString.split("\n")
+    
+    timeoutf = open("status/timedout-ip-checked.list", "a")
+    for oip in badipset:
+        if oip in timeoutList:
+            print "ignore ", oip
+            continue
+
+        print "connect to", oip
+        try:
+            connectip(oip)
+        except socket.timeout:
+            print "timed out", oip
+            timeoutf.write(oip+"\n")
+            timeoutf.flush()
+        except:
+            print "connected to", oip
+    timeoutf.close()
+    exit(0)
+
+if gOptions.action == "a": #append
     timeoutf = open("status/timedout-ip.list", "a")
     resetf = open("status/refused-ip.list", "a")
 
@@ -50,23 +89,16 @@ while 1:
             if oip in refusedipset:
                 continue
 
-            #print "connect to", oip
             try:
-                remote = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                remote.settimeout(6)
-                remote.connect((oip, 80))
-                #remote.send("\r\n"*89)
-                remote.send("\r\n\r\n" + "GET /theconnectionwasreset HTTP/1.1\r\nHost: twitter.com\r\n\r\n")
-                remote.recv(1024*64)
-                #print oip, "good"
-                remote.close()
+                if gOptions.action == "a": print "connect to", oip
+                connectip(oip)
             except socket.timeout:
-                badipset[oip]=1
                 if timeoutf:
                     timeoutf.write(oip+"\n")
                     timeoutf.flush()
             except socket.error, e:
-                #print oip, "socket.error", e
+                if gOptions.action == "a": print oip, "socket.error", e
+
                 if e[0] == errno.ECONNRESET:
                     resetcnt += 1
                     #print "*" resetcnt, "resets"
@@ -79,6 +111,9 @@ while 1:
                     if resetf:
                         resetf.write(oip+"\n")
                         resetf.flush()
+
+    if gOptions.action == "a": #append
+        break
 
 if timeoutf: timeoutf.close()
 if resetf: resetf.close()
