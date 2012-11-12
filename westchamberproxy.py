@@ -1001,6 +1001,7 @@ def start():
                 break
         except:
             print sys.exc_info()
+    print "DNS : "  + dnsserver
     print "DNS hijack test:" + str(cnt)
 
     ## Read Configuration
