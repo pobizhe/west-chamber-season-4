@@ -1,13 +1,14 @@
 #!/usr/bin/python
 
-import socket,sys,random,errno,argparse,os
+import socket,sys,random,errno,os
 import config
 
 def connectip(ip):
     remote = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     remote.settimeout(6)
     remote.connect((oip, 80))
-    remote.send("\r\n\r\n" + "GET /theconnectionwasreset HTTP/1.1\r\nHost: twitter.com\r\n\r\n")
+    host = random.choice(config.gConfig["BLOCKED_DOMAINS_LIST"])
+    remote.send("GET / HTTP/1.1\r\nHost: "+host+"\r\n\r\n")
     remote.recv(1024*64)
     #print oip, "good"
     remote.close()
@@ -34,10 +35,16 @@ for ip in resetIpString.split("\n"):
 timeoutf = 0
 resetf = 0
 
-parser = argparse.ArgumentParser(description='gfw doser')
-parser.add_argument('--action', default='', help='set to a if logging')
-gOptions = parser.parse_args()
-
+try:
+    import argparse
+    parser = argparse.ArgumentParser(description='gfw doser')
+    parser.add_argument('--action', default='', help='set to a if logging')
+    gOptions = parser.parse_args()
+except:
+    class option:
+        def __init__(self): 
+            self.action = ''
+    gOptions = option()
 
 if gOptions.action == "c": #check
     timeoutf = open("status/timedout-ip-checked.list", "r")
