@@ -82,7 +82,7 @@ def hookInit():
             socket.create_connection = gOriginalCreateConnection
         socks.setdefaultproxy(socks.PROXY_TYPE_SOCKS5, gConfig["SOCKS_HOST"], gConfig["SOCKS_PORT"])
     else:
-        gConfig["HOST"][gConfig["GOAGENT_FETCHHOST"]] = gConfig["GOAGENT_IP"]
+        gConfig["HOST"][gConfig["GOAGENT_FETCHHOST"]] = gConfig["GOAGENT_IP"][0]
         socket.create_connection = socket_create_connection
 
 class SimpleMessageClass(object):
@@ -1001,7 +1001,6 @@ def start():
                 break
         except:
             print sys.exc_info()
-    print "DNS : "  + dnsserver
     print "DNS hijack test:" + str(cnt)
 
     ## Read Configuration
