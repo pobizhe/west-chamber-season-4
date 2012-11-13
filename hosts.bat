@@ -1,14 +1,14 @@
 @echo off
 CLS
 color 17
-@title Hosts自动更新程序  By  FGQI  2012-11-10
+@title Hosts自动更新程序  By  FGQI  2012-11-13
 
 :MENU
 echo.          =-=-=-=-=Hosts自动更新程序菜单=-=-=-=-= 
 echo.
 echo. 本程序只会更新相应的hosts地址，不会影响你hosts里面原有的其它地址
 echo.
-echo. 2012-11-10 换IP段
+echo. 2012-11-13 换IP段
 echo.
 echo. 1 运行Google脚本，使用北京服务器地址更新Google服务地址（推荐使用这个）
 echo.
@@ -37,13 +37,13 @@ if "%XUANXIANG%"=="7" goto 7
 
 :1
 echo.
-echo 正在使用Google北京服务器地址更新hosts，请稍等
+echo 正在使用Google服务器地址更新hosts，请稍等
 setlocal enabledelayedexpansion
-set min=202
-set max=229
+set min=31
+set max=54
 set /a mod=!max!-!min!+1
 set /a r=!random!%%!mod!+!min!
-set GOOGLE=203.208.46.%r%
+set GOOGLE=173.194.72.%r%
 type %windir%\System32\drivers\etc\hosts|find "FGQI" /i /v|find "Google" /i /v|find "ggpht" /i /v|find "gmail" /i /v|find "gstatic" /i /v|find "appspot" /i /v|find "sandai" /i /v|find "github" /i /v|findstr "." >>%windir%\System32\drivers\etc\hostsfgqi
 if exist %windir%\System32\drivers\etc\hosts.backup1 del %windir%\System32\drivers\etc\hosts.backup1 /q
 if exist %windir%\System32\drivers\etc\hosts.backup ren %windir%\System32\drivers\etc\hosts.backup hosts.backup1
@@ -250,7 +250,7 @@ echo	%GOOGLE%	wave.google.com	>>%windir%\System32\drivers\etc\hosts
 echo	%GOOGLE%	webcache.googleusercontent.com	>>%windir%\System32\drivers\etc\hosts
 echo	%GOOGLE%	wenda.google.com.hk	>>%windir%\System32\drivers\etc\hosts
 echo	%GOOGLE%	www.gmail.com	>>%windir%\System32\drivers\etc\hosts
-echo	%GOOGLE%	www.windir%\System32\drivers\etc\hosts
+echo	%GOOGLE%	www.google.com	>>%windir%\System32\drivers\etc\hosts
 echo	%GOOGLE%	www.google.com.hk	>>%windir%\System32\drivers\etc\hosts
 echo	%GOOGLE%	www.googleadservices.com	>>%windir%\System32\drivers\etc\hosts
 echo	%GOOGLE%	www.google-analytics.com	>>%windir%\System32\drivers\etc\hosts
@@ -296,8 +296,8 @@ goto MENU
 echo.
 echo 请稍等,正在获取Google服务器的IP
 for /f "tokens=2 delims=[]" %%i in ('ping www.g.cn') do set GOOGLE=%%i
-for /f "delims=." %%i in ("%GOOGLE%") do if %%i==203 (echo 你获取的是北京服务器的地址，正在更新hosts，请稍等) else echo 你获取的是%GOOGLE%，不是Google北京服务器地址，正在更新hosts，请稍等
-for /f "delims=." %%i in ("%GOOGLE%") do if not %%i==203 echo 因为地址不是北京服务器，可能导致服务不能用，推荐使用选项 1 更新hosts
+for /f "delims=." %%i in ("%GOOGLE%") do if %%i==173.194.72 (echo 正在更新hosts，请稍等) else echo 你获取的是%GOOGLE%，正在更新hosts，请稍等
+for /f "delims=." %%i in ("%GOOGLE%") do if not %%i==173.194.72 echo 可能导致服务不能用，推荐使用选项 1 更新hosts
 type %windir%\System32\drivers\etc\hosts|find "FGQI" /i /v|find "Google" /i /v|find "ggpht" /i /v|find "gmail" /i /v|find "gstatic" /i /v|find "appspot" /i /v|find "sandai" /i /v|find "github" /i /v|findstr "." >>%windir%\System32\drivers\etc\hostsfgqi
 if exist %windir%\System32\drivers\etc\hosts.backup1 del %windir%\System32\drivers\etc\hosts.backup1 /q
 if exist %windir%\System32\drivers\etc\hosts.backup ren %windir%\System32\drivers\etc\hosts.backup hosts.backup1
