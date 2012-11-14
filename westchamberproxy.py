@@ -630,7 +630,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
                     return self.do_METHOD_Tunnel()
             else:
                 self.remote = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                logging.debug( host + ":connect to " + connectHost + ":" + str(port))
+                logging.debug( "connect to " + host + ":" + str(port))
                 self.remote.connect((connectHost, port))
                 if doInject: 
                     logging.info ("inject http for "+host)
