@@ -11,7 +11,7 @@
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 from SocketServer import ThreadingMixIn
 from httplib import HTTPResponse, BadStatusLine
-import os, re, socket, struct, threading, traceback, sys, select, urlparse, signal, urllib, urllib2, time, hashlib, binascii, zlib, httplib, errno, string, logging, random, ssl, heapq
+import os, re, socket, struct, threading, traceback, sys, select, urlparse, signal, urllib, urllib2, time, hashlib, binascii, zlib, httplib, errno, string, logging, random, ssl, heapq, fnmatch
 import DNS
 
 try:
@@ -40,6 +40,7 @@ gConfig["BLACKHOLES"] = [
     '59.24.3.173'
 ]
 
+gConfig['AUTORANGE_HOSTS_TAIL'] = tuple(x.rpartition('*')[2] for x in gConfig['AUTORANGE_HOSTS'])
 gOriginalCreateConnection = socket.create_connection
 
 def socket_create_connection((host, port), timeout=None, source_address=None):
@@ -642,12 +643,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
             print " ".join((self.command, path, self.request_version)) + "\r\n"
             self.remote.send(" ".join((self.command, path, self.request_version)) + "\r\n")
             
-            if doInject: 
-                logging.info ("inject http for "+host)
-                del self.headers["Host"]
-                self.remote.send(str(self.headers) + "Host: " + host + "\r\n\r\n")
-            else:
-                self.remote.send(str(self.headers) + "\r\n")
+            self.remote.send(str(self.headers) + "\r\n")
             # Send Post data
             if(self.command=='POST'):
                 self.remote.send(self.rfile.read(int(self.headers['Content-Length'])))
@@ -773,13 +769,14 @@ class ProxyHandler(BaseHTTPRequestHandler):
         # for ssl proxy
         host, _, port = self.path.rpartition(':')
         keyfile, certfile = CertUtil.get_cert(host)
+        self.log_request(200)
         self.connection.sendall('%s 200 OK\r\n\r\n' % self.protocol_version)
         try:
             self._realpath = self.path
             self._realrfile = self.rfile
             self._realwfile = self.wfile
             self._realconnection = self.connection
-            self.connection = ssl.wrap_socket(self.connection, keyfile, certfile, server_side=True)
+            self.connection = ssl.wrap_socket(self.connection, keyfile=keyfile, certfile=certfile, server_side=True)
             self.rfile = self.connection.makefile('rb', self.rbufsize)
             self.wfile = self.connection.makefile('wb', self.wbufsize)
             self.raw_requestline = self.rfile.readline(8192)
@@ -833,6 +830,15 @@ class ProxyHandler(BaseHTTPRequestHandler):
             m = re.search('bytes=(\d+)-', autorange)
             start = int(m.group(1) if m else 0)
             headers['Range'] = 'bytes=%d-%d' % (start, start+gConfig['AUTORANGE_MAXSIZE']-1)
+        elif host.endswith(gConfig['AUTORANGE_HOSTS_TAIL']):
+            try:
+                pattern = (p for p in gConfig['AUTORANGE_HOSTS'] if host.endswith(p) or fnmatch.fnmatch(host, p)).next()
+                logging.debug('autorange pattern=%r match url=%r', pattern, self.path)
+                m = re.search('bytes=(\d+)-', headers.get('Range', ''))
+                start = int(m.group(1) if m else 0)
+                headers['Range'] = 'bytes=%d-%d' % (start, start+gConfig['AUTORANGE_MAXSIZE']-1)
+            except StopIteration:
+                pass
         headers['X-Version'] = gConfig["VERSION"]
         skip_headers = frozenset(['Host', 'Vary', 'Via', 'X-Forwarded-For', 'Proxy-Authorization', 'Proxy-Connection', 'Upgrade', 'Keep-Alive'])
         strheaders = ''.join('%s: %s\r\n' % (k, v) for k, v in headers.iteritems() if k not in skip_headers)
