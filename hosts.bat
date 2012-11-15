@@ -43,7 +43,7 @@ set min=31
 set max=54
 set /a mod=!max!-!min!+1
 set /a r=!random!%%!mod!+!min!
-set GOOGLE=173.194.72.%r%
+set GOOGLE=74.125.128.%r%
 type %windir%\System32\drivers\etc\hosts|find "FGQI" /i /v|find "Google" /i /v|find "ggpht" /i /v|find "gmail" /i /v|find "gstatic" /i /v|find "appspot" /i /v|find "sandai" /i /v|find "github" /i /v|findstr "." >>%windir%\System32\drivers\etc\hostsfgqi
 if exist %windir%\System32\drivers\etc\hosts.backup1 del %windir%\System32\drivers\etc\hosts.backup1 /q
 if exist %windir%\System32\drivers\etc\hosts.backup ren %windir%\System32\drivers\etc\hosts.backup hosts.backup1
@@ -87,19 +87,19 @@ echo	%GOOGLE%	chatenabled.mail.google.com	>>%windir%\System32\drivers\etc\hosts
 echo	%GOOGLE%	checkout.google.com	>>%windir%\System32\drivers\etc\hosts
 echo	%GOOGLE%	chrome.google.com	>>%windir%\System32\drivers\etc\hosts
 echo	%GOOGLE%	clients1.google.com	>>%windir%\System32\drivers\etc\hosts
-echo	173.194.72.102	clients1.googleusercontent.com	>>%windir%\System32\drivers\etc\hosts
+echo	%GOOGLE%	clients1.googleusercontent.com	>>%windir%\System32\drivers\etc\hosts
 echo	%GOOGLE%	clients2.google.com	>>%windir%\System32\drivers\etc\hosts
-echo	173.194.72.102	clients2.googleusercontent.com	>>%windir%\System32\drivers\etc\hosts
+echo	%GOOGLE%	clients2.googleusercontent.com	>>%windir%\System32\drivers\etc\hosts
 echo	%GOOGLE%	clients3.google.com	>>%windir%\System32\drivers\etc\hosts
-echo	173.194.72.102	clients3.googleusercontent.com	>>%windir%\System32\drivers\etc\hosts
+echo	%GOOGLE%	clients3.googleusercontent.com	>>%windir%\System32\drivers\etc\hosts
 echo	%GOOGLE%	clients4.google.com	>>%windir%\System32\drivers\etc\hosts
-echo	173.194.72.102	clients4.googleusercontent.com	>>%windir%\System32\drivers\etc\hosts
+echo	%GOOGLE%	clients4.googleusercontent.com	>>%windir%\System32\drivers\etc\hosts
 echo	%GOOGLE%	clients5.google.com	>>%windir%\System32\drivers\etc\hosts
-echo	173.194.72.102	clients5.googleusercontent.com	>>%windir%\System32\drivers\etc\hosts
+echo	%GOOGLE%	clients5.googleusercontent.com	>>%windir%\System32\drivers\etc\hosts
 echo	%GOOGLE%	clients6.google.com	>>%windir%\System32\drivers\etc\hosts
-echo	173.194.72.102	clients6.googleusercontent.com	>>%windir%\System32\drivers\etc\hosts
+echo	%GOOGLE%	clients6.googleusercontent.com	>>%windir%\System32\drivers\etc\hosts
 echo	%GOOGLE%	clients7.google.com	>>%windir%\System32\drivers\etc\hosts
-echo	173.194.72.102	clients7.googleusercontent.com	>>%windir%\System32\drivers\etc\hosts
+echo	%GOOGLE%	clients7.googleusercontent.com	>>%windir%\System32\drivers\etc\hosts
 echo	%GOOGLE%	code.google.com	>>%windir%\System32\drivers\etc\hosts
 echo	%GOOGLE%	www.gstatic.com	>>%windir%\System32\drivers\etc\hosts
 echo	%GOOGLE%	csi.gstatic.com	>>%windir%\System32\drivers\etc\hosts
@@ -295,8 +295,8 @@ goto MENU
 :2
 echo.
 echo 请稍等,正在获取Google服务器的IP
-for /f "tokens=2 delims=[]" %%i in ('ping www.g.cn') do set GOOGLE=%%i
-for /f "delims=." %%i in ("%GOOGLE%") do if %%i==173.194.72 (echo 正在更新hosts，请稍等) else echo 你获取的是%GOOGLE%，正在更新hosts，请稍等
+for /f "tokens=2 delims=[]" %%i in ('ping www.google.af') do set GOOGLE=%%i
+for /f "delims=." %%i in ("%GOOGLE%") do if %%i==%GOOGLE% (echo 正在更新hosts，请稍等) else echo 你获取的是%GOOGLE%，正在更新hosts，请稍等
 for /f "delims=." %%i in ("%GOOGLE%") do if not %%i==173.194.72 echo 可能导致服务不能用，推荐使用选项 1 更新hosts
 type %windir%\System32\drivers\etc\hosts|find "FGQI" /i /v|find "Google" /i /v|find "ggpht" /i /v|find "gmail" /i /v|find "gstatic" /i /v|find "appspot" /i /v|find "sandai" /i /v|find "github" /i /v|findstr "." >>%windir%\System32\drivers\etc\hostsfgqi
 if exist %windir%\System32\drivers\etc\hosts.backup1 del %windir%\System32\drivers\etc\hosts.backup1 /q
@@ -341,19 +341,19 @@ echo	%GOOGLE%	chatenabled.mail.google.com	>>%windir%\System32\drivers\etc\hosts
 echo	%GOOGLE%	checkout.google.com	>>%windir%\System32\drivers\etc\hosts
 echo	%GOOGLE%	chrome.google.com	>>%windir%\System32\drivers\etc\hosts
 echo	%GOOGLE%	clients1.google.com	>>%windir%\System32\drivers\etc\hosts
-echo	173.194.72.102	clients1.googleusercontent.com	>>%windir%\System32\drivers\etc\hosts
+echo	%GOOGLE%	clients1.googleusercontent.com	>>%windir%\System32\drivers\etc\hosts
 echo	%GOOGLE%	clients2.google.com	>>%windir%\System32\drivers\etc\hosts
-echo	173.194.72.102	clients2.googleusercontent.com	>>%windir%\System32\drivers\etc\hosts
+echo	%GOOGLE%	clients2.googleusercontent.com	>>%windir%\System32\drivers\etc\hosts
 echo	%GOOGLE%	clients3.google.com	>>%windir%\System32\drivers\etc\hosts
-echo	173.194.72.102	clients3.googleusercontent.com	>>%windir%\System32\drivers\etc\hosts
+echo	%GOOGLE%	clients3.googleusercontent.com	>>%windir%\System32\drivers\etc\hosts
 echo	%GOOGLE%	clients4.google.com	>>%windir%\System32\drivers\etc\hosts
-echo	173.194.72.102	clients4.googleusercontent.com	>>%windir%\System32\drivers\etc\hosts
+echo	%GOOGLE%	clients4.googleusercontent.com	>>%windir%\System32\drivers\etc\hosts
 echo	%GOOGLE%	clients5.google.com	>>%windir%\System32\drivers\etc\hosts
-echo	173.194.72.102	clients5.googleusercontent.com	>>%windir%\System32\drivers\etc\hosts
+echo	%GOOGLE%	clients5.googleusercontent.com	>>%windir%\System32\drivers\etc\hosts
 echo	%GOOGLE%	clients6.google.com	>>%windir%\System32\drivers\etc\hosts
-echo	173.194.72.102	clients6.googleusercontent.com	>>%windir%\System32\drivers\etc\hosts
+echo	%GOOGLE%	clients6.googleusercontent.com	>>%windir%\System32\drivers\etc\hosts
 echo	%GOOGLE%	clients7.google.com	>>%windir%\System32\drivers\etc\hosts
-echo	173.194.72.102	clients7.googleusercontent.com	>>%windir%\System32\drivers\etc\hosts
+echo	%GOOGLE%	clients7.googleusercontent.com	>>%windir%\System32\drivers\etc\hosts
 echo	%GOOGLE%	code.google.com	>>%windir%\System32\drivers\etc\hosts
 echo	%GOOGLE%	www.gstatic.com	>>%windir%\System32\drivers\etc\hosts
 echo	%GOOGLE%	csi.gstatic.com	>>%windir%\System32\drivers\etc\hosts
@@ -482,7 +482,7 @@ echo	%GOOGLE%	t0.gstatic.com	>>%windir%\System32\drivers\etc\hosts
 echo	%GOOGLE%	t1.gstatic.com	>>%windir%\System32\drivers\etc\hosts
 echo	%GOOGLE%	t2.gstatic.com	>>%windir%\System32\drivers\etc\hosts
 echo	%GOOGLE%	t3.gstatic.com	>>%windir%\System32\drivers\etc\hosts
-echo	173.194.72.102	talkgadget.google.com	>>%windir%\System32\drivers\etc\hosts
+echo	%GOOGLE%	talkgadget.google.com	>>%windir%\System32\drivers\etc\hosts
 echo	%GOOGLE%	talkx.l.google.com	>>%windir%\System32\drivers\etc\hosts
 echo	%GOOGLE%	themes.googleusercontent.com	>>%windir%\System32\drivers\etc\hosts
 echo	%GOOGLE%	toolbar.google.com	>>%windir%\System32\drivers\etc\hosts
