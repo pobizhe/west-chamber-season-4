@@ -681,6 +681,10 @@ function FindProxyForURL(url, host)
         ['103.29.132.0', '255.255.252.0'],
         ['103.29.136.0', '255.255.252.0'],
         ['103.30.20.0', '255.255.252.0'],
+        ['103.30.96.0', '255.255.252.0'],
+        ['103.30.148.0', '255.255.252.0'],
+        ['103.30.200.0', '255.255.252.0'],
+        ['103.30.216.0', '255.255.252.0'],
         ['103.246.8.0', '255.255.252.0'],
         ['103.246.12.0', '255.255.252.0'],
         ['103.246.120.0', '255.255.252.0'],
@@ -3537,53 +3541,53 @@ function FindProxyForURL(url, host)
     ];
 
     var urls = [
-		'*.168xs.com/*',
-		'*.shoudian.org/*',
-		'*.xiuzhenba.com/*',
-		'*.shuax.com/*',
-		'*.mzxzx.com/*',
-		'*.oko.co/*',
-		'*hioo*',
-		'*.gg.ma/*',
-		'*.qs99w.com/*',
-		'*.unkzone.net/*',
-		'*bipics.net/*',
-		'*pen.io*',
-		'*cl.orc.st*',
-		'*.5917.me/*',
-		'*.dmxf.com/*',
-		'*.www.galbus.us/*',
-		'*.animex9.com/*',
-		'*.h5gal.net/*',
-		'*.2tu.me/*',
-		'*.tumblr.com/*',
-		'*35xs*',
-		'*.hkpic.net/*',
-		'*.myforum.com.hk/*',
-		'*.sankakucomplex.com/*',
-		'*.sankakustatic.com/*',
-		'*chrislin2k.com/*',
-		'*setianshi.org/*',
-		'*bipics.net/*',
-		'*hkbisi.com/*',
-		'*hkbc.net/*',
-		'*pornhub*',
-		'*tube8*',
-		'*bisi-forum.com/*',
-		'*dell*',
-	];
-	
+        '*.168xs.com/*',
+        '*.shoudian.org/*',
+        '*.xiuzhenba.com/*',
+        '*.shuax.com/*',
+        '*.mzxzx.com/*',
+        '*.oko.co/*',
+        '*hioo*',
+        '*.gg.ma/*',
+        '*.qs99w.com/*',
+        '*.unkzone.net/*',
+        '*bipics.net/*',
+        '*pen.io*',
+        '*cl.orc.st*',
+        '*.5917.me/*',
+        '*.dmxf.com/*',
+        '*.www.galbus.us/*',
+        '*.animex9.com/*',
+        '*.h5gal.net/*',
+        '*.2tu.me/*',
+        '*.tumblr.com/*',
+        '*35xs*',
+        '*.hkpic.net/*',
+        '*.myforum.com.hk/*',
+        '*.sankakucomplex.com/*',
+        '*.sankakustatic.com/*',
+        '*chrislin2k.com/*',
+        '*setianshi.org/*',
+        '*bipics.net/*',
+        '*hkbisi.com/*',
+        '*hkbc.net/*',
+        '*pornhub*',
+        '*bisi-forum.com/*',
+        '*github.com/*',
+    ];
     var PROXY ='PROXY 127.0.0.1:1998';
     var DIRECT ='DIRECT';
 
-    for (i=0;i<urls.length;i++) {
-    if (shExpMatch(url,urls[i])) { return DIRECT;}
-	}
-    var ip = dnsResolve(host);
-    for (i=0;i<list.length;i++) {
-        if (isInNet(ip, list[i][0], list[i][1])) {
-            if (! isInNet('202.106.199.39', list[i][0], list[i][1])) return direct;}
-    }
- return PROXY;
+   for (i=0;i<urls.length;i++) {
+   if (shExpMatch(url,urls[i])) { return DIRECT;}
+   }
+
+   var ip = dnsResolve(host);
+   for (i=0;i<list.length;i++) {
+       if (isInNet(ip, list[i][0], list[i][1])) {
+           if (! isInNet('202.106.199.39', list[i][0], list[i][1])) return direct;} 
+   }
+
+   return PROXY;
 
 }
