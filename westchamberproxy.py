@@ -39,7 +39,7 @@ gConfig["BLACKHOLES"] = [
     '159.106.121.75', 
     '59.24.3.173'
 ]
-
+gConfig["GAE_FETCHSERVER"] = 'https://%s/fetch.py?' %(gConfig["GOAGENT_FETCHHOST"])
 gConfig['AUTORANGE_HOSTS_TAIL'] = tuple(x.rpartition('*')[2] for x in gConfig['AUTORANGE_HOSTS'])
 gOriginalCreateConnection = socket.create_connection
 
@@ -293,13 +293,13 @@ class CertUtil(object):
         ca.set_issuer(ca.get_subject())
         ca.set_pubkey(key)
         ca.add_extensions([
-          OpenSSL.crypto.X509Extension(b'basicConstraints', True, b'CA:TRUE'),
-          OpenSSL.crypto.X509Extension(b'nsCertType', True, b'sslCA'),
-          OpenSSL.crypto.X509Extension(b'extendedKeyUsage', True,
-            b'serverAuth,clientAuth,emailProtection,timeStamping,msCodeInd,msCodeCom,msCTLSign,msSGC,msEFS,nsSGC'),
-          OpenSSL.crypto.X509Extension(b'keyUsage', False, b'keyCertSign, cRLSign'),
-          OpenSSL.crypto.X509Extension(b'subjectKeyIdentifier', False, b'hash', subject=ca),
-          ])
+            OpenSSL.crypto.X509Extension(b'basicConstraints', True, b'CA:TRUE'),
+            OpenSSL.crypto.X509Extension(b'nsCertType', True, b'sslCA'),
+            OpenSSL.crypto.X509Extension(b'extendedKeyUsage', True,
+                b'serverAuth,clientAuth,emailProtection,timeStamping,msCodeInd,msCodeCom,msCTLSign,msSGC,msEFS,nsSGC'),
+            OpenSSL.crypto.X509Extension(b'keyUsage', False, b'keyCertSign, cRLSign'),
+            OpenSSL.crypto.X509Extension(b'subjectKeyIdentifier', False, b'hash', subject=ca),
+            ])
         ca.sign(key, 'sha1')
         return key, ca
 
@@ -368,7 +368,7 @@ class CertUtil(object):
 
     @staticmethod
     def get_cert(commonname, certdir='certs', ca_keyfile='CA.key', ca_certfile='CA.crt', sans = []):
-        if len(commonname) >= 32:
+        if len(commonname) >= 32 and commonname.count('.') >= 2:
             commonname = re.sub(r'^[^\.]+', '', commonname)
         keyfile  = os.path.join(certdir, commonname + '.key')
         certfile = os.path.join(certdir, commonname + '.crt')
@@ -405,7 +405,6 @@ class CertUtil(object):
               }.get(sys.platform)
         if cmd and os.system(cmd) != 0:
             logging.warning('GoAgent install trusted root CA certificate failed, Please run goagent by administrator/root.')
-
 
 class ThreadingHTTPServer(ThreadingMixIn, HTTPServer): pass
 class ProxyHandler(BaseHTTPRequestHandler):
@@ -539,7 +538,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
                 return self.getRemoteResolve(host, a['data'])
         print ("DNS remote resolve failed: " + host)
         return host
-    
+
     def proxy(self):
         doInject = False
         inWhileList = False
@@ -724,6 +723,18 @@ class ProxyHandler(BaseHTTPRequestHandler):
                 if not inWhileList:
                     logging.info ("add "+host+" to blocked domains")
                     gConfig["BLOCKED_IPS"][connectHost] = True
+
+    def send_response(self, code, message=None):
+        self.log_request(code)
+        message = message or self.responses.get(code, ('GoAgent Notify',))[0]
+        self.connection.sendall('%s %d %s\r\n' % (self.protocol_version, code, message))
+
+    def end_error(self, code, message=None, data=None):
+        if not data:
+            self.send_error(code, message)
+        else:
+            self.send_response(code, message)
+            self.connection.sendall(data)
     
     def do_GET(self):
         #some sites(e,g, weibo.com) are using comet (persistent HTTP connection) to implement server push
@@ -733,7 +744,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         self.proxy()
-    
+
     def do_CONNECT(self):
         host, _, port = self.path.rpartition(':')
         ip = self.getip(host)
@@ -776,7 +787,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
             self._realrfile = self.rfile
             self._realwfile = self.wfile
             self._realconnection = self.connection
-            self.connection = ssl.wrap_socket(self.connection, keyfile=keyfile, certfile=certfile, server_side=True)
+            self.connection = ssl.wrap_socket(self.connection, certfile=certfile, keyfile=keyfile, server_side=True)
             self.rfile = self.connection.makefile('rb', self.rbufsize)
             self.wfile = self.connection.makefile('wb', self.wbufsize)
             self.raw_requestline = self.rfile.readline(8192)
@@ -800,13 +811,6 @@ class ProxyHandler(BaseHTTPRequestHandler):
             self.rfile = self._realrfile
             self.wfile = self._realwfile
             self.connection = self._realconnection
-
-    def end_error(self, code, message=None, data=None):
-        if not data:
-            self.send_error(code, message)
-        else:
-            self.send_response(code, message)
-            self.connection.sendall(data)
 
     def do_METHOD_Tunnel(self):
         headers = self.headers
@@ -876,7 +880,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
                 return
 
     def fetch(self, url, payload, method, headers):
-        return urlfetch(url, payload, method, headers, gConfig['GOAGENT_FETCHHOST'], "https://" + gConfig["GOAGENT_FETCHHOST"] + "/fetch.py?", password=gConfig["GOAGENT_PASSWORD"])
+        return urlfetch(url, payload, method, headers, gConfig['GOAGENT_FETCHHOST'], gConfig["GAE_FETCHSERVER"], password=gConfig["GOAGENT_PASSWORD"])
 
     def rangefetch(self, m, data):
         m = map(int, m.groups())
@@ -960,7 +964,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
                 self.wfile.write(data['content'])
         logging.info('>>>>>>>>>>>>>>> Range Fetch ended(%r)', self.headers.get('Host'))
         return True
-
+    
     # reslove ssl from http://code.google.com/p/python-proxy/
     def _read_write(self):
         BUFLEN = 8192
