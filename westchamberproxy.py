@@ -368,8 +368,6 @@ class CertUtil(object):
 
     @staticmethod
     def get_cert(commonname, certdir='certs', ca_keyfile='CA.key', ca_certfile='CA.crt', sans = []):
-        if len(commonname) >= 32 and commonname.count('.') >= 2:
-            commonname = re.sub(r'^[^\.]+', '', commonname)
         keyfile  = os.path.join(certdir, commonname + '.key')
         certfile = os.path.join(certdir, commonname + '.crt')
         if os.path.exists(certfile):
@@ -821,7 +819,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
             return
 
         if self.path[0] == '/':
-            self.path = 'https://%s%s' % (host, self.path)
+            self.path = 'http://%s%s' % (host, self.path)
         payload_len = int(headers.get('Content-Length', 0))
         if payload_len:
             payload = self.rfile.read(payload_len)
@@ -829,11 +827,10 @@ class ProxyHandler(BaseHTTPRequestHandler):
             payload = ''
 
         if 'Range' in headers.dict:
-            autorange = headers.dict['Range']
-            logging.info('autorange range=%r match url=%r', autorange, self.path)
-            m = re.search('bytes=(\d+)-', autorange)
+            m = re.search('bytes=(\d+)-', headers.dict['Range'])
             start = int(m.group(1) if m else 0)
             headers['Range'] = 'bytes=%d-%d' % (start, start+gConfig['AUTORANGE_MAXSIZE']-1)
+            logging.info('autorange range=%r match url=%r', headers['Range'], self.path)
         elif host.endswith(gConfig['AUTORANGE_HOSTS_TAIL']):
             try:
                 pattern = (p for p in gConfig['AUTORANGE_HOSTS'] if host.endswith(p) or fnmatch.fnmatch(host, p)).next()
@@ -843,7 +840,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
                 headers['Range'] = 'bytes=%d-%d' % (start, start+gConfig['AUTORANGE_MAXSIZE']-1)
             except StopIteration:
                 pass
-        headers['X-Version'] = gConfig["VERSION"]
+
         skip_headers = frozenset(['Host', 'Vary', 'Via', 'X-Forwarded-For', 'Proxy-Authorization', 'Proxy-Connection', 'Upgrade', 'Keep-Alive'])
         strheaders = ''.join('%s: %s\r\n' % (k, v) for k, v in headers.iteritems() if k not in skip_headers)
 
