@@ -24,11 +24,13 @@ gConfig = {
     "DNS_CACHE_MAXSZ" : 1024,
     "SKIP_LOCAL_RESOLV" : True,
     "CONFIG_ON_STARTUP" : False,
+    "BLOCKED_DOMAINS_MATCH_ROOT" : False,
     "LOCAL_PORT" : 1998,
     "HOST" : {
         "a248.e.akamai.net" : "118.155.230.56",
         "plus.google.com" : "74.125.31.102"
     },
+    "HTTP_PROXY": "61.30.127.2",
     "ADSHOSTON" : True,
     "ADSHOST" : {
         "stat.youku.com" : "0.0.0.0",
