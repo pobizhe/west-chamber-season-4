@@ -368,6 +368,8 @@ class CertUtil(object):
 
     @staticmethod
     def get_cert(commonname, certdir='certs', ca_keyfile='CA.key', ca_certfile='CA.crt', sans = []):
+        if len(commonname) >= 32 and commonname.count('.') >= 2:
+            commonname = re.sub(r'^[^\.]+', '', commonname)
         keyfile  = os.path.join(certdir, commonname + '.key')
         certfile = os.path.join(certdir, commonname + '.crt')
         if os.path.exists(certfile):
@@ -785,7 +787,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
             self._realrfile = self.rfile
             self._realwfile = self.wfile
             self._realconnection = self.connection
-            self.connection = ssl.wrap_socket(self.connection, certfile=certfile, keyfile=keyfile, server_side=True)
+            self.connection = ssl.wrap_socket(self.connection, certfile=certfile, keyfile=keyfile, server_side=True, ssl_version=ssl.PROTOCOL_TLSv1)
             self.rfile = self.connection.makefile('rb', self.rbufsize)
             self.wfile = self.connection.makefile('wb', self.wbufsize)
             self.raw_requestline = self.rfile.readline(8192)
