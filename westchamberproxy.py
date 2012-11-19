@@ -475,7 +475,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
                     return self.getRemoteResolve(host)
                 return ip
         except:
-            logging.error ("DNS system resolve Error: " + host)
+            print "DNS system resolve Error: " + host
             ip = ""
         return self.getRemoteResolve(host)
 
@@ -639,7 +639,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
             # Send requestline
             if path == "":
                 path = "/"
-            print (" ".join((self.command, path, self.request_version)) + "\r\n")
+            print " ".join((self.command, path, self.request_version)) + "\r\n"
             self.remote.send(" ".join((self.command, path, self.request_version)) + "\r\n")
             
             self.remote.send(str(self.headers) + "\r\n")
@@ -651,7 +651,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
             msg = "http405"
             try :
                 response.begin()
-                print (host + " response: %d"%(response.status))
+                print host + " response: %d"%(response.status)
                 msg = "http%d"%(response.status)
             except BadStatusLine:
                 print host + " response: BadStatusLine"
@@ -716,9 +716,9 @@ class ProxyHandler(BaseHTTPRequestHandler):
                         domainWhiteList.append(host)
                     return
  
-            print ("error in proxy: ", self.requestline)
-            print (exc_type)
-            print (str(exc_value) + " " + host)
+            print "error in proxy: ", self.requestline
+            print exc_type
+            print str(exc_value) + " " + host
             if exc_type == socket.timeout or (exc_type == socket.error and code in [60, 110, 10060]): #timed out, 10060 is for Windows
                 if not inWhileList:
                     logging.info ("add "+host+" to blocked domains")
@@ -823,10 +823,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
         if self.path[0] == '/':
             self.path = 'http://%s%s' % (host, self.path)
         payload_len = int(headers.get('Content-Length', 0))
-        if payload_len:
-            payload = self.rfile.read(payload_len)
-        else:
-            payload = ''
+        payload = '' #payload = self.rfile.read(payload_len)
 
         if 'Range' in headers.dict:
             m = re.search('bytes=(\d+)-', headers.dict['Range'])
@@ -1047,8 +1044,8 @@ def start():
     httplib.HTTPMessage = SimpleMessageClass
     CertUtil.check_ca()
     print "Loaded", len(gConfig["HOST"]), " dns rules."
-    print ("Set your browser's HTTP/HTTPS proxy to 127.0.0.1:%d"%(gOptions.port))
-    print ("You can configure your proxy var http://127.0.0.1:%d"%(gOptions.port))
+    print "Set your browser's HTTP/HTTPS proxy to 127.0.0.1:%d"%(gOptions.port)
+    print "You can configure your proxy var http://127.0.0.1:%d"%(gOptions.port)
     if gConfig['CONFIG_ON_STARTUP']:
         try: 
             import webbrowser
@@ -1082,7 +1079,7 @@ if __name__ == "__main__":
 
     except :
         #arg parse error
-        print ("arg parse error")
+        print "arg parse error"
         class option:
             def __init__(self): 
                 self.log = 2
@@ -1093,7 +1090,7 @@ if __name__ == "__main__":
     if gOptions.pidfile != "":
         pid = str(os.getpid())
         f = open(gOptions.pidfile,'w')
-        print ("Writing pid " + pid + " to "+gOptions.pidfile)
+        print "Writing pid " + pid + " to "+gOptions.pidfile
         f.write(pid)
         f.close()
 
