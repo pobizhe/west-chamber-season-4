@@ -787,7 +787,11 @@ class ProxyHandler(BaseHTTPRequestHandler):
             self._realrfile = self.rfile
             self._realwfile = self.wfile
             self._realconnection = self.connection
-            self.connection = ssl.wrap_socket(self.connection, certfile=certfile, keyfile=keyfile, server_side=True)
+            try:
+                self.connection = ssl.wrap_socket(self.connection, keyfile=keyfile, certfile=certfile, server_side=True)
+            except Exception as e:
+                logging.exception('ssl.wrap_socket(self.connection=%r) failed: %s', self.connection, e)
+                self.connection = ssl.wrap_socket(self.connection, certfile=certfile, keyfile=keyfile, server_side=True, ssl_version=ssl.PROTOCOL_TLSv1)
             self.rfile = self.connection.makefile('rb', self.rbufsize)
             self.wfile = self.connection.makefile('wb', self.wbufsize)
             self.raw_requestline = self.rfile.readline(8192)
@@ -823,7 +827,10 @@ class ProxyHandler(BaseHTTPRequestHandler):
         if self.path[0] == '/':
             self.path = 'http://%s%s' % (host, self.path)
         payload_len = int(headers.get('Content-Length', 0))
-        payload = '' #payload = self.rfile.read(payload_len)
+        if payload_len:
+            payload = self.rfile.read(payload_len)
+        else:
+            payload = ''
 
         if 'Range' in headers.dict:
             m = re.search('bytes=(\d+)-', headers.dict['Range'])
