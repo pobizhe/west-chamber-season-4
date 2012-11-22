@@ -48,12 +48,13 @@ def socket_create_connection((host, port), timeout=None, source_address=None):
     if host == gConfig["GOAGENT_FETCHHOST"]:
         msg = 'socket_create_connection returns an empty list'
         try:
+            iplist = gConfig["HOST"][host]
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.connect((gConfig["HOST"][host],port))
+            sock.connect((iplist, port))
             sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, True)
             return sock
         except socket.error, msg:
-            logging.error('socket_create_connection connect fail: (%r, %r)', gConfig["HOST"][host], port)
+            logging.error('socket_create_connection connect fail: (%r, %r)', iplist, port)
             sock = None
         if not sock:
             raise socket.error, msg
@@ -70,7 +71,7 @@ def socket_create_connection((host, port), timeout=None, source_address=None):
                     sock.bind(source_address)
                 sock.connect(sa)
                 return sock
-            except socket.error, msg:
+            except socket.error:
                 if sock is not None:
                     sock.close()
         raise socket.error, msg
@@ -264,6 +265,7 @@ def urlfetch(url, payload, method, headers, fetchhost, fetchserver, password=Non
                     newfetch = (data.get('fetchhost'), data.get('fetchserver'))
                     if newfetch != (fetchhost, fetchserver):
                         (fetchhost, fetchserver) = newfetch
+                        sys.stdout.write(hookInit())
             errors.append(str(e))
             time.sleep(i+1)
             continue
@@ -749,10 +751,10 @@ class ProxyHandler(BaseHTTPRequestHandler):
         host, _, port = self.path.rpartition(':')
         ip = self.getip(host)
         logging.info ("[Connect] Resolved " + host + " => " + ip)
-        try:
-            if not (isDomainBlocked(host) or isIpBlocked(ip)):
-                self.remote = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                logging.info ("SSL: connect " + host + " ip:" + ip)
+        if (isDomainBlocked(host) or isIpBlocked(ip)):
+            self.remote = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            logging.info ("SSL: connect " + host + " ip:" + ip)
+            try:
                 self.remote.connect((ip, int(port)))
 
                 Agent = 'WCProxy/1.0'
@@ -760,9 +762,10 @@ class ProxyHandler(BaseHTTPRequestHandler):
                          'Proxy-agent: %s\n\n'%Agent)
                 self._read_write()
                 return
-        except:
-            logging.info ("SSL: connect " + ip + " failed.")
-            gConfig["BLOCKED_IPS"][ip] = True
+            except:
+                logging.info ("SSL: connect " + ip + " failed.")
+                gConfig["BLOCKED_IPS"][ip] = True
+        self.do_CONNECT_Tunnel()
 
         if gConfig["PROXY_TYPE"]=="socks5":
             self.remote = socks.socksocket(socket.AF_INET, socket.SOCK_STREAM)
@@ -773,8 +776,6 @@ class ProxyHandler(BaseHTTPRequestHandler):
                          'Proxy-agent: %s\n\n'%Agent)
             self._read_write()
             return
-
-        self.do_CONNECT_Tunnel()
 
     def do_CONNECT_Tunnel(self):
         # for ssl proxy
@@ -787,11 +788,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
             self._realrfile = self.rfile
             self._realwfile = self.wfile
             self._realconnection = self.connection
-            try:
-                self.connection = ssl.wrap_socket(self.connection, keyfile=keyfile, certfile=certfile, server_side=True)
-            except Exception as e:
-                logging.exception('ssl.wrap_socket(self.connection=%r) failed: %s', self.connection, e)
-                self.connection = ssl.wrap_socket(self.connection, certfile=certfile, keyfile=keyfile, server_side=True, ssl_version=ssl.PROTOCOL_TLSv1)
+            self.connection = ssl.wrap_socket(self.connection, certfile=certfile, keyfile=keyfile, server_side=True)
             self.rfile = self.connection.makefile('rb', self.rbufsize)
             self.wfile = self.connection.makefile('wb', self.wbufsize)
             self.raw_requestline = self.rfile.readline(8192)
@@ -805,8 +802,8 @@ class ProxyHandler(BaseHTTPRequestHandler):
                     self.path = 'https://%s%s' % (self._realpath, self.path)
                 self.requestline = '%s %s %s' % (self.command, self.path, self.protocol_version)
             self.do_METHOD_Tunnel()
-        except socket.error:
-            logging.exception('do_CONNECT_Tunnel socket.error')
+        except socket.error as e:
+            logging.exception('do_CONNECT_Tunnel socket.error %s', e)
         finally:
             try:
                 self.connection.shutdown(socket.SHUT_WR)
@@ -883,7 +880,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
                 return
 
     def fetch(self, url, payload, method, headers):
-        return urlfetch(url, payload, method, headers, gConfig['GOAGENT_FETCHHOST'], gConfig["GAE_FETCHSERVER"], password=gConfig["GOAGENT_PASSWORD"])
+        return urlfetch(url, payload, method, headers, gConfig["GOAGENT_FETCHHOST"], gConfig["GAE_FETCHSERVER"], password=gConfig["GOAGENT_PASSWORD"])
 
     def rangefetch(self, m, data):
         m = map(int, m.groups())
