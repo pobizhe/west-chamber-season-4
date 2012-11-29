@@ -390,8 +390,8 @@ class CertUtil(object):
         certdir = os.path.join(os.path.dirname(__file__), 'certs')
         if not os.path.exists(certdir):
             os.makedirs(certdir)
-        #Check CA exists
-        capath = os.path.join(os.path.dirname(__file__), 'CA.key')
+            #Check CA exists
+        capath = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'CA.key')
         if not os.path.exists(capath):
             if not OpenSSL:
                 logging.critical('CA.key is not exist and OpenSSL is disabled, ABORT!')
@@ -400,11 +400,11 @@ class CertUtil(object):
                 os.system('certmgr.exe -del -n "GoAgent CA" -c -s -r localMachine Root')
             [os.remove(os.path.join('certs', x)) for x in os.listdir('certs')]
             CertUtil.dump_ca('CA.key', 'CA.crt')
-        #Check CA imported
+            #Check CA imported
         cmd = {
-                'win32'  : r'cd /d "%s" && certmgr.exe -add CA.crt -c -s -r localMachine Root >NUL' % os.path.dirname(__file__),
-                'darwin' : r'security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain CA.crt',
-              }.get(sys.platform)
+            'win32'  : r'cd /d "%s" && certmgr.exe -add CA.crt -c -s -r localMachine Root >NUL' % os.path.dirname(capath),
+            'darwin' : r'security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain CA.crt',
+            }.get(sys.platform)
         if cmd and os.system(cmd) != 0:
             logging.warning('GoAgent install trusted root CA certificate failed, Please run goagent by administrator/root.')
 
@@ -1030,6 +1030,7 @@ def start():
     #        gConfig[k] = jsonConfig[k]
     #except:
     #    logging.info("Load online json config failed")
+    CertUtil.check_ca()
 
     hookInit()
 
@@ -1046,7 +1047,6 @@ def start():
         logging.info("load blocked domains failed")
 
     httplib.HTTPMessage = SimpleMessageClass
-    CertUtil.check_ca()
     print "Loaded", len(gConfig["HOST"]), " dns rules."
     print "Set your browser's HTTP/HTTPS proxy to 127.0.0.1:%d"%(gOptions.port)
     print "You can configure your proxy var http://127.0.0.1:%d"%(gOptions.port)
