@@ -78,14 +78,16 @@ def socket_create_connection((host, port), timeout=None, source_address=None):
 
 def hookInit():
     print ("hookInit: " + gConfig["PROXY_TYPE"] + " " + gConfig["GOAGENT_FETCHHOST"])
-    if gConfig["PROXY_TYPE"] == "socks5":
-        if socket.create_connection != gOriginalCreateConnection:
-            print "restore socket.create_connection"
-            socket.create_connection = gOriginalCreateConnection
-        socks.setdefaultproxy(socks.PROXY_TYPE_SOCKS5, gConfig["SOCKS_HOST"], gConfig["SOCKS_PORT"])
-    else:
+    if gConfig["PROXY_TYPE"] == "goagent":
         gConfig["HOST"][gConfig["GOAGENT_FETCHHOST"]] = gConfig["GOAGENT_IP"][0]
-        socket.create_connection = socket_create_connection
+    else:
+        if any(not re.match(r'\d+\.\d+\.\d+\.\d+', x) for x in gConfig["GOAGENT_IP"]):
+            google_iplist = [host for host in gConfig["GOAGENT_IP"] if re.match(r'\d+\.\d+\.\d+\.\d+', host)]
+            google_hosts = [host for host in gConfig["GOAGENT_IP"] if not re.match(r'\d+\.\d+\.\d+\.\d+', host)]
+            google_hosts_iplist = [[x[-1][0] for x in socket.getaddrinfo(host, 80)] for host in google_hosts]
+            gConfig["GOAGENT_IP"] = tuple(set(sum(google_hosts_iplist, google_iplist)))
+        gConfig["HOST"][gConfig["GOAGENT_FETCHHOST"]] = gConfig["GOAGENT_IP"][0]
+    socket.create_connection = socket_create_connection
 
 class SimpleMessageClass(object):
 
@@ -623,13 +625,8 @@ class ProxyHandler(BaseHTTPRequestHandler):
                 logging.info ("Resolved " + host + " => " + connectHost)
 
             if isDomainBlocked(host) or isIpBlocked(connectHost):
-                if gConfig["PROXY_TYPE"] == "socks5":
-                    self.remote = socks.socksocket(socket.AF_INET, socket.SOCK_STREAM)
-                    logging.info("connect to " + host + ":" + str(port) + " var socks5 proxy")
-                    self.remote.connect((connectHost, port))
-                else:
-                    logging.info(host + " blocked, try goagent.")
-                    return self.do_METHOD_Tunnel()
+				logging.info(host + " blocked, try goagent.")
+				return self.do_METHOD_Tunnel()
             else:
                 self.remote = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 logging.debug( "connect to " + host + ":" + str(port))
@@ -766,16 +763,6 @@ class ProxyHandler(BaseHTTPRequestHandler):
                 logging.info ("SSL: connect " + ip + " failed.")
                 gConfig["BLOCKED_IPS"][ip] = True
         self.do_CONNECT_Tunnel()
-
-        if gConfig["PROXY_TYPE"]=="socks5":
-            self.remote = socks.socksocket(socket.AF_INET, socket.SOCK_STREAM)
-            print ("SSL: connect " + host + " ip:" + ip + " var socks5 proxy")
-            self.remote.connect((ip, int(port)))
-            Agent = 'WCProxy/1.0'
-            self.wfile.write('HTTP/1.1'+' 200 Connection established\n'+
-                         'Proxy-agent: %s\n\n'%Agent)
-            self._read_write()
-            return
 
     def do_CONNECT_Tunnel(self):
         # for ssl proxy
