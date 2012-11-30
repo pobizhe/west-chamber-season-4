@@ -3573,7 +3573,10 @@ function FindProxyForURL(url, host)
         '*hkbc.net/*',
         '*pornhub*',
         '*bisi-forum.com/*',
+        '*dell*',
         '*github.com/*',
+        '*weibo*',
+        '*liruqi*',
     ];
     var PROXY ='PROXY 127.0.0.1:1998';
     var DIRECT ='DIRECT';

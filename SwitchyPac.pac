@@ -3576,6 +3576,9 @@ function FindProxyForURL(url, host)
 		'*tube8*',
 		'*bisi-forum.com/*',
 		'*dell*',
+		'*github.com/*',
+                '*weibo*',
+                '*liruqi*',
 	];
 
     var PROXY ='PROXY 127.0.0.1:1998';
