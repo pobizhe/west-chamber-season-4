@@ -78,15 +78,7 @@ def socket_create_connection((host, port), timeout=None, source_address=None):
 
 def hookInit():
     print ("hookInit: " + gConfig["PROXY_TYPE"] + " " + gConfig["GOAGENT_FETCHHOST"])
-    if gConfig["PROXY_TYPE"] == "goagent":
-        gConfig["HOST"][gConfig["GOAGENT_FETCHHOST"]] = gConfig["GOAGENT_IP"][0]
-    else:
-        if any(not re.match(r'\d+\.\d+\.\d+\.\d+', x) for x in gConfig["GOAGENT_IP"]):
-            google_iplist = [host for host in gConfig["GOAGENT_IP"] if re.match(r'\d+\.\d+\.\d+\.\d+', host)]
-            google_hosts = [host for host in gConfig["GOAGENT_IP"] if not re.match(r'\d+\.\d+\.\d+\.\d+', host)]
-            google_hosts_iplist = [[x[-1][0] for x in socket.getaddrinfo(host, 80)] for host in google_hosts]
-            gConfig["GOAGENT_IP"] = tuple(set(sum(google_hosts_iplist, google_iplist)))
-        gConfig["HOST"][gConfig["GOAGENT_FETCHHOST"]] = gConfig["GOAGENT_IP"][0]
+    gConfig["HOST"][gConfig["GOAGENT_FETCHHOST"]] = gConfig["GOAGENT_IP"][0]
     socket.create_connection = socket_create_connection
 
 class SimpleMessageClass(object):
