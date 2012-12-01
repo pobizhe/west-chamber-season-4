@@ -3561,7 +3561,6 @@ function FindProxyForURL(url, host)
         '*.h5gal.net/*',
         '*.2tu.me/*',
         '*.tumblr.com/*',
-        '*35xs*',
         '*.hkpic.net/*',
         '*.myforum.com.hk/*',
         '*.sankakucomplex.com/*',
@@ -3576,7 +3575,7 @@ function FindProxyForURL(url, host)
         '*dell*',
         '*github.com/*',
         '*weibo*',
-        '*liruqi*',
+        '*liruqi.info/*',
     ];
     var PROXY ='PROXY 127.0.0.1:1998';
     var DIRECT ='DIRECT';
