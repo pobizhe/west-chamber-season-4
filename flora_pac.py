@@ -69,6 +69,7 @@ def generate_pac(proxy):
         "\n        '*bisi-forum.com/*',"
         "\n        '*dell*',"
         "\n        '*github.com/*',"
+        "\n        '*gravatar.com/*',"
         "\n        '*weibo*',"
         "\n        '*liruqi.info/*',"
         "\n    ];"
