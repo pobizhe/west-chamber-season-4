@@ -3577,9 +3577,9 @@ function FindProxyForURL(url, host)
         '*pornhub*',
         '*bisi-forum.com/*',
         '*dell*',
-        '*github.com/*',
-        '*gravatar.com/*',
-        '*weibo*',
+        '*.github.com/*',
+        '*.gravatar.com/*',
+        '*.weibo.com/*',
         '*liruqi.info/*',
 
     ];

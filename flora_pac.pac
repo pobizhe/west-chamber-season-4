@@ -3573,9 +3573,9 @@ function FindProxyForURL(url, host)
         '*pornhub*',
         '*bisi-forum.com/*',
         '*dell*',
-        '*github.com/*',
-        '*gravatar.com/*',
-        '*weibo*',
+        '*.github.com/*',
+        '*.gravatar.com/*',
+        '*.weibo.com/*',
         '*liruqi.info/*',
     ];
     var PROXY ='PROXY 127.0.0.1:1998';
