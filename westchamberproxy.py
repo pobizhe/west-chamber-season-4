@@ -617,8 +617,8 @@ class ProxyHandler(BaseHTTPRequestHandler):
                 logging.info ("Resolved " + host + " => " + connectHost)
 
             if isDomainBlocked(host) or isIpBlocked(connectHost):
-				logging.info(host + " blocked, try goagent.")
-				return self.do_METHOD_Tunnel()
+                logging.info(host + " blocked, try goagent.")
+                return self.do_METHOD_Tunnel()
             else:
                 self.remote = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 logging.debug( "connect to " + host + ":" + str(port))
@@ -767,9 +767,12 @@ class ProxyHandler(BaseHTTPRequestHandler):
             self._realrfile = self.rfile
             self._realwfile = self.wfile
             self._realconnection = self.connection
-            self.connection = ssl.wrap_socket(self.connection, certfile=certfile, keyfile=keyfile, server_side=True)
-            self.rfile = self.connection.makefile('rb', self.rbufsize)
-            self.wfile = self.connection.makefile('wb', self.wbufsize)
+            try:
+                self.connection = ssl.wrap_socket(self._realconnection, certfile=certfile, keyfile=keyfile, server_side=True)
+            except Exception as e:
+                self.connection = ssl.wrap_socket(self._realconnection, certfile=certfile, keyfile=keyfile, server_side=True, ssl_version=ssl.PROTOCOL_TLSv1)
+            self.rfile = self.connection.makefile('rb', 1024*1024)
+            self.wfile = self.connection.makefile('wb', 0)
             self.raw_requestline = self.rfile.readline(8192)
             if self.raw_requestline == '':
                 return
