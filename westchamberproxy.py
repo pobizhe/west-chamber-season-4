@@ -710,7 +710,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
             print "error in proxy: ", self.requestline
             print exc_type
             print str(exc_value) + " " + host
-            if exc_type == socket.timeout or (exc_type == socket.error and code in [60, 110, 10060]): #timed out, 10060 is for Windows
+            if exc_type == socket.timeout or (exc_type == socket.error and code in [60, 110, 10060, 'timed out']): #timed out, 10060 is for Windows
                 if not inWhileList:
                     logging.info ("add "+host+" to blocked domains")
                     gConfig["BLOCKED_IPS"][connectHost] = True
@@ -730,7 +730,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         #some sites(e,g, weibo.com) are using comet (persistent HTTP connection) to implement server push
         #after setting socket timeout, many persistent HTTP requests redirects to web proxy, waste of resource
-        #socket.setdefaulttimeout(18)
+        socket.setdefaulttimeout(6)
         self.proxy()
 
     def do_POST(self):
@@ -745,7 +745,6 @@ class ProxyHandler(BaseHTTPRequestHandler):
             logging.info ("SSL: connect " + host + " ip:" + ip)
             try:
                 self.remote.connect((ip, int(port)))
-
                 Agent = 'WCProxy/1.0'
                 self.wfile.write('HTTP/1.1'+' 200 Connection established\n'+
                          'Proxy-agent: %s\n\n'%Agent)
@@ -766,11 +765,11 @@ class ProxyHandler(BaseHTTPRequestHandler):
             self._realpath = self.path
             self._realrfile = self.rfile
             self._realwfile = self.wfile
-            self._realconnection = self.connection
+            self._realsock = self.connection
             try:
-                self.connection = ssl.wrap_socket(self._realconnection, certfile=certfile, keyfile=keyfile, server_side=True)
+                self.connection = ssl.wrap_socket(self._realsock, certfile=certfile, keyfile=keyfile, server_side=True)
             except Exception as e:
-                self.connection = ssl.wrap_socket(self._realconnection, certfile=certfile, keyfile=keyfile, server_side=True, ssl_version=ssl.PROTOCOL_TLSv1)
+                self.connection = ssl.wrap_socket(self._realsock, certfile=certfile, keyfile=keyfile, server_side=True, ssl_version=ssl.PROTOCOL_SSLv23)
             self.rfile = self.connection.makefile('rb', 1024*1024)
             self.wfile = self.connection.makefile('wb', 0)
             self.raw_requestline = self.rfile.readline(8192)
@@ -793,7 +792,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
                 pass
             self.rfile = self._realrfile
             self.wfile = self._realwfile
-            self.connection = self._realconnection
+            self.connection = self._realsock
 
     def do_METHOD_Tunnel(self):
         headers = self.headers
@@ -1053,6 +1052,7 @@ if __name__ == "__main__":
             parser.add_argument('--log', default=2, type=int, help='log level, 0-5')
             parser.add_argument('--pidfile', default='wcproxy.pid', help='pid file')
             parser.add_argument('--logfile', default='wcproxy.log', help='log file')
+            parser.add_argument('--check', default=0, type=int, help='check proxy list only')
             gOptions = parser.parse_args()
         else:
             import optparse
@@ -1065,7 +1065,7 @@ if __name__ == "__main__":
 
     except :
         #arg parse error
-        print "arg parse error"
+        print ("arguments parse error")
         class option:
             def __init__(self): 
                 self.log = 2
@@ -1079,6 +1079,9 @@ if __name__ == "__main__":
         print "Writing pid " + pid + " to "+gOptions.pidfile
         f.write(pid)
         f.close()
+
+    if gOptions.check>0:
+        open(gOptions.logfile,'w').close()
 
     logging.basicConfig(filename=gOptions.logfile, level = gOptions.log*10, format='%(asctime)-15s %(message)s')
     
