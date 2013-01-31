@@ -379,13 +379,42 @@ class CertUtil(object):
                 return CertUtil._get_cert(commonname, certdir, ca_keyfile, ca_certfile, sans)
 
     @staticmethod
+    def import_ca(certfile):
+        dirname, basename = os.path.split(certfile)
+        commonname = os.path.splitext(certfile)[0]
+        if OpenSSL:
+            try:
+                with open(certfile, 'rb') as fp:
+                    x509 = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM, fp.read())
+                    commonname = (v for k,v in x509.get_subject().get_components() if k=='O').next()
+            except Exception as e:
+                pass
+
+        cmd = ''
+        if sys.platform.startswith('win'):
+            cmd = 'cd /d "%s" && .\certmgr.exe -add %s -c -s -r localMachine Root >NUL' % (dirname, basename)
+        elif sys.platform == 'cygwin':
+            cmd = 'cmd /c "pushd %s && certmgr.exe -add %s -c -s -r localMachine Root"' % (dirname, basename)
+        elif sys.platform == 'darwin':
+            cmd = 'security find-certificate -a -c "%s" | grep "%s" || security add-trusted-cert -d -r trustRoot -k "/Library/Keychains/System.keychain" "%s"' % (commonname, commonname, certfile)
+        elif sys.platform.startswith('linux'):
+            import platform
+            platform_distname = platform.dist()[0]
+            if platform_distname == 'Ubuntu':
+                pemfile = "/etc/ssl/certs/%s.pem" % commonname
+                new_certfile = "/usr/local/share/ca-certificates/%s.crt" % commonname
+                if not os.path.exists(pemfile):
+                    cmd = 'cp "%s" "%s" && update-ca-certificates' % (certfile, new_certfile)
+        return os.system(cmd)
+
+    @staticmethod
     def check_ca():
         #Check Certs Dir
         certdir = os.path.join(os.path.dirname(__file__), 'certs')
         if not os.path.exists(certdir):
             os.makedirs(certdir)
-            #Check CA exists
-        capath = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'CA.key')
+        #Check CA exists
+        capath = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'CA.crt')
         if not os.path.exists(capath):
             if not OpenSSL:
                 logging.critical('CA.key is not exist and OpenSSL is disabled, ABORT!')
@@ -394,13 +423,9 @@ class CertUtil(object):
                 os.system('certmgr.exe -del -n "GoAgent CA" -c -s -r localMachine Root')
             [os.remove(os.path.join('certs', x)) for x in os.listdir('certs')]
             CertUtil.dump_ca('CA.key', 'CA.crt')
-            #Check CA imported
-        cmd = {
-            'win32'  : r'cd /d "%s" && certmgr.exe -add CA.crt -c -s -r localMachine Root >NUL' % os.path.dirname(capath),
-            'darwin' : r'security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain CA.crt',
-            }.get(sys.platform)
-        if cmd and os.system(cmd) != 0:
-            logging.warning('GoAgent install trusted root CA certificate failed, Please run goagent by administrator/root.')
+        #Check CA imported
+        if CertUtil.import_ca(capath) != 0:
+            logging.warning('GoAgent install certificate failed, Please run proxy.py by administrator/root/sudo')
 
 class ThreadingHTTPServer(ThreadingMixIn, HTTPServer): pass
 class ProxyHandler(BaseHTTPRequestHandler):
@@ -697,7 +722,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
                 if code in [32, 10053]: #errno.EPIPE, 10053 is for Windows
                     logging.info ("Detected remote disconnect: " + host)
                     return
-                if code in [54, 11004, 10051, 10054]: #reset
+                if code in [54, 11004, 10051, 10054, 10060, 'timed out']:#reset
                     logging.info(host + ": reset from " + connectHost)
                     gConfig["BLOCKED_IPS"][connectHost] = True
                     return
@@ -710,7 +735,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
             print "error in proxy: ", self.requestline
             print exc_type
             print str(exc_value) + " " + host
-            if exc_type == socket.timeout or (exc_type == socket.error and code in [60, 110, 10060, 'timed out']): #timed out, 10060 is for Windows
+            if exc_type == socket.timeout or (exc_type == socket.error and code in [60, 110, 10060]): #timed out, 10060 is for Windows
                 if not inWhileList:
                     logging.info ("add "+host+" to blocked domains")
                     gConfig["BLOCKED_IPS"][connectHost] = True
@@ -730,7 +755,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         #some sites(e,g, weibo.com) are using comet (persistent HTTP connection) to implement server push
         #after setting socket timeout, many persistent HTTP requests redirects to web proxy, waste of resource
-        socket.setdefaulttimeout(6)
+        #socket.setdefaulttimeout(6)
         self.proxy()
 
     def do_POST(self):
@@ -758,25 +783,27 @@ class ProxyHandler(BaseHTTPRequestHandler):
     def do_CONNECT_Tunnel(self):
         # for ssl proxy
         host, _, port = self.path.rpartition(':')
+        #port = int(port)
         keyfile, certfile = CertUtil.get_cert(host)
-        self.log_request(200)
-        self.connection.sendall('%s 200 OK\r\n\r\n' % self.protocol_version)
+        self.connection.sendall('HTTP/1.1 200 OK\r\n\r\n')
+        self.__realsock = self.connection
         try:
-            self._realpath = self.path
-            self._realrfile = self.rfile
-            self._realwfile = self.wfile
-            self._realsock = self.connection
-            try:
-                self.connection = ssl.wrap_socket(self._realsock, certfile=certfile, keyfile=keyfile, server_side=True)
-            except Exception as e:
-                self.connection = ssl.wrap_socket(self._realsock, certfile=certfile, keyfile=keyfile, server_side=True, ssl_version=ssl.PROTOCOL_SSLv23)
-            self.rfile = self.connection.makefile('rb', 1024*1024)
-            self.wfile = self.connection.makefile('wb', 0)
-            self.raw_requestline = self.rfile.readline(8192)
-            if self.raw_requestline == '':
+            self.connection = ssl.wrap_socket(self.__realsock, certfile=certfile, keyfile=keyfile, server_side=True, ssl_version=ssl.PROTOCOL_SSLv23)
+        except Exception as e:
+            logging.exception('ssl.wrap_socket(self.connection=%r) failed: %s', self.connection, e)
+            #self.connection = ssl.wrap_socket(self.__realsock, certfile=certfile, keyfile=keyfile, server_side=True, ssl_version=ssl.PROTOCOL_SSLv23)
+            return
+        #self._realpath = self.path
+        self._realrfile = self.rfile
+        self._realwfile = self.wfile
+        self.rfile = self.connection.makefile('rb', self.rbufsize)
+        self.wfile = self.connection.makefile('wb', self.wbufsize)
+        try:
+            self.raw_requestline = self.rfile.readline(1024*1024)
+            if self.raw_requestline == '\r\n':
                 return
             self.parse_request()
-            if self.path[0] == '/':
+            if self.path[0] == '/' and host:
                 if 'Host' in self.headers:
                     self.path = 'https://%s:%s%s' % (self.headers['Host'].partition(':')[0], port or 443, self.path)
                 else:
@@ -784,15 +811,14 @@ class ProxyHandler(BaseHTTPRequestHandler):
                 self.requestline = '%s %s %s' % (self.command, self.path, self.protocol_version)
             self.do_METHOD_Tunnel()
         except socket.error as e:
-            logging.exception('do_CONNECT_Tunnel socket.error %s', e)
+            if e[0] not in (10053, 10060, errno.EPIPE):
+                raise
         finally:
-            try:
-                self.connection.shutdown(socket.SHUT_WR)
-            except socket.error:
-                pass
-            self.rfile = self._realrfile
-            self.wfile = self._realwfile
-            self.connection = self._realsock
+            if self.__realsock:
+                self.__realsock.shutdown(socket.SHUT_WR)
+                self.__realsock.close()
+            if self._realrfile:
+                self._realrfile.close()
 
     def do_METHOD_Tunnel(self):
         headers = self.headers
@@ -804,11 +830,8 @@ class ProxyHandler(BaseHTTPRequestHandler):
 
         if self.path[0] == '/':
             self.path = 'http://%s%s' % (host, self.path)
-        payload_len = int(headers.get('Content-Length', 0))
-        if payload_len:
-            payload = self.rfile.read(payload_len)
-        else:
-            payload = ''
+        content_length = int(headers.get('Content-Length', 0))
+        payload = self.rfile.read(content_length) if content_length else ''
 
         if 'Range' in headers.dict:
             m = re.search('bytes=(\d+)-', headers.dict['Range'])
@@ -835,7 +858,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
             code = data['code']
             headers = data['headers']
             self.log_request(code)
-            if code == 206 and self.command=='GET':
+            if code == 206 and self.command == 'GET':
                 content_range = headers.get('Content-Range') or headers.get('content-range') or ''
                 m = re.search(r'bytes\s+(\d+)-(\d+)/(\d+)', content_range)
                 if m and self.rangefetch(m, data):
@@ -853,7 +876,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
                         response.close()
                         break
                     self.connection.sendall(content)
-            if 'close' == headers.get('Connection',''):
+            if 'close' == headers.get('Connection'):
                 self.close_connection = 1
         except socket.error as e:
             # Connection closed before proxy return
