@@ -783,7 +783,6 @@ class ProxyHandler(BaseHTTPRequestHandler):
     def do_CONNECT_Tunnel(self):
         # for ssl proxy
         host, _, port = self.path.rpartition(':')
-        #port = int(port)
         keyfile, certfile = CertUtil.get_cert(host)
         self.connection.sendall('HTTP/1.1 200 OK\r\n\r\n')
         self.__realsock = self.connection
@@ -793,7 +792,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
             logging.exception('ssl.wrap_socket(self.connection=%r) failed: %s', self.connection, e)
             #self.connection = ssl.wrap_socket(self.__realsock, certfile=certfile, keyfile=keyfile, server_side=True, ssl_version=ssl.PROTOCOL_SSLv23)
             return
-        #self._realpath = self.path
+        self._realpath = self.path
         self._realrfile = self.rfile
         self._realwfile = self.wfile
         self.rfile = self.connection.makefile('rb', self.rbufsize)
