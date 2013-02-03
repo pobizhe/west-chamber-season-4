@@ -324,14 +324,14 @@ class ProxyHandler(BaseHTTPRequestHandler):
                 if not doProxy:
                     gConfig["BLOCKED_IPS"][connectHost] = True
                     return self.proxy()
-
+                
                 if exc_type == socket.timeout:
                     logging.info("Bad proxy:" + s)
 
                 print ("error in proxy: ", self.requestline)
                 print (exc_type)
                 print (str(exc_value) + " " + host)
-    
+        
     def do_GET(self):
         #some sites(e,g, weibo.com) are using comet (persistent HTTP connection) to implement server push
         #after setting socket timeout, many persistent HTTP requests redirects to web proxy, waste of resource
@@ -412,7 +412,7 @@ def start():
 
     for d in gConfig["REMOTE_DNS_LIST"]:
         heapq.heappush(dnsHeap, (1,d))
- 
+    
     try :
         gConfig["HTTP_PROXY_SERVERS"] = []
         s = open("httpproxy.list")
@@ -493,3 +493,4 @@ if __name__ == "__main__":
     logging.basicConfig(filename=gOptions.logfile, level = gOptions.log*10, format='%(asctime)-15s %(message)s')
     
     start()
+
