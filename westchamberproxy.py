@@ -19,7 +19,6 @@ try:
 except ImportError:
     OpenSSL = None
 
-import socks
 import config
 
 gConfig = config.gConfig
@@ -496,7 +495,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
                     return self.getRemoteResolve(host)
                 return ip
         except:
-            print "DNS system resolve Error: " + host
+            logging.error ("DNS system resolve Error: " + host)
             ip = ""
         return self.getRemoteResolve(host)
 
@@ -606,7 +605,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
                     
                 self.wfile.write("HTTP/1.1 302 FOUND\r\n" + "Location: /\r\n\r\n" + domain)
                 return
-
+            #TODO: pac
             for key in gConfig:
                 if type(gConfig[key]) in [str,int] :
                     html = html.replace("{"+key+"}", str(gConfig[key]))
@@ -765,19 +764,20 @@ class ProxyHandler(BaseHTTPRequestHandler):
         host, _, port = self.path.rpartition(':')
         ip = self.getip(host)
         logging.info ("[Connect] Resolved " + host + " => " + ip)
-        if (isDomainBlocked(host) or isIpBlocked(ip)):
-            self.remote = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            logging.info ("SSL: connect " + host + " ip:" + ip)
-            try:
+        try:
+            if isDomainBlocked(host) or isIpBlocked(ip):
+                self.remote = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                logging.info ("SSL: connect " + host + " ip:" + ip)
                 self.remote.connect((ip, int(port)))
+
                 Agent = 'WCProxy/1.0'
                 self.wfile.write('HTTP/1.1'+' 200 Connection established\n'+
                          'Proxy-agent: %s\n\n'%Agent)
                 self._read_write()
                 return
-            except:
-                logging.info ("SSL: connect " + ip + " failed.")
-                gConfig["BLOCKED_IPS"][ip] = True
+        except:
+            logging.info ("SSL: connect " + ip + " failed.")
+            gConfig["BLOCKED_IPS"][ip] = True
         self.do_CONNECT_Tunnel()
 
     def do_CONNECT_Tunnel(self):
@@ -797,10 +797,10 @@ class ProxyHandler(BaseHTTPRequestHandler):
         self._realwfile = self.wfile
         self.rfile = self.connection.makefile('rb', self.rbufsize)
         self.wfile = self.connection.makefile('wb', self.wbufsize)
+        self.raw_requestline = self.rfile.readline(8192)
+        if self.raw_requestline == '':
+            return
         try:
-            self.raw_requestline = self.rfile.readline(1024*1024)
-            if self.raw_requestline == '\r\n':
-                return
             self.parse_request()
             if self.path[0] == '/' and host:
                 if 'Host' in self.headers:
@@ -821,13 +821,13 @@ class ProxyHandler(BaseHTTPRequestHandler):
 
     def do_METHOD_Tunnel(self):
         headers = self.headers
-        host = headers.get('Host') or urlparse.urlparse(self.path).netloc.partition(':')[0]
+        host = headers.get('Host', '') or urlparse.urlparse(self.path).netloc.partition(':')[0]
         if (host in gConfig["ADSHOST"]):
             status = "HTTP/1.1 404 Not Found"
             self.wfile.write(status + "\r\n\r\n")
             return
 
-        if self.path[0] == '/':
+        if self.path[0] == '/' and host:
             self.path = 'http://%s%s' % (host, self.path)
         content_length = int(headers.get('Content-Length', 0))
         payload = self.rfile.read(content_length) if content_length else ''
@@ -994,6 +994,18 @@ class ProxyHandler(BaseHTTPRequestHandler):
                 logging.debug( "select timeout")
                 break
 
+def addressInNetwork(ip,net):
+    "Is an address in a network"
+    ipaddr = struct.unpack('>L',socket.inet_aton(ip))[0]
+    netaddr,bits = net.split('/')
+    netmask = struct.unpack('>L',socket.inet_aton(netaddr))[0]
+    ipaddr_masked = ipaddr & (4294967295<<(32-int(bits)))   # Logical AND of IP address and mask will equal the network address if it matches
+    if netmask == netmask & (4294967295<<(32-int(bits))):   # Validate network address is valid for mask
+        return ipaddr_masked == netmask
+    else:
+        print "***WARNING*** Network",netaddr,"not valid with mask /"+bits
+        return ipaddr_masked == netmask
+
 def start():
     cnt = {}
     for x in range(16):
@@ -1039,7 +1051,17 @@ def start():
 
     for d in gConfig["REMOTE_DNS_LIST"]:
         heapq.heappush(dnsHeap, (1,d))
-    
+
+    try:
+        import json
+        global gipWhiteList;
+        s = open(gConfig["CHINA_IP_LIST_FILE"])
+        gipWhiteList = json.loads( s.read() )
+        logging.info( "load %d ip range rules" % len(gipWhiteList))
+        s.close()
+    except:
+        logging.info( "load ip-range config fail")
+
     try:
         s = urllib2.urlopen(gConfig["BLOCKED_DOMAINS_URI"])
         for line in s.readlines():
