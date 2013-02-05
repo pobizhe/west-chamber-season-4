@@ -57,6 +57,22 @@ def socket_create_connection((host, port), timeout=None, source_address=None):
             sock = None
         if not sock:
             raise socket.error, msg
+    elif host == gConfig["GOAGENT_IP"]:
+        msg = 'socket_create_connection returns an empty list'
+        try:
+            iplist = gConfig["HOST"][host]
+            if not iplist:
+                iplist = tuple(x[-1][0] for x in socket.getaddrinfo(host, 80))
+                gConfig["HOST"][host] = iplist
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.connect((iplist, port))
+            sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, True)
+            return sock
+        except socket.error:
+            logging.error('socket_create_connection connect fail: (%r, %r)', iplist, port)
+            sock = None
+        if not sock:
+            raise socket.error, msg
     else:
         msg = 'getaddrinfo returns an empty list'
         for res in socket.getaddrinfo(host, port, 0, socket.SOCK_STREAM):
@@ -168,7 +184,6 @@ gOptions = {}
 
 gipWhiteList = []
 domainWhiteList = [
-    ".cn",
     "renren.com",
     "baidu.com",
     "mozilla.org",
@@ -797,10 +812,10 @@ class ProxyHandler(BaseHTTPRequestHandler):
         self._realwfile = self.wfile
         self.rfile = self.connection.makefile('rb', self.rbufsize)
         self.wfile = self.connection.makefile('wb', self.wbufsize)
-        self.raw_requestline = self.rfile.readline(8192)
-        if self.raw_requestline == '':
-            return
         try:
+            self.raw_requestline = self.rfile.readline(8192)
+            if self.raw_requestline == '':
+                return
             self.parse_request()
             if self.path[0] == '/' and host:
                 if 'Host' in self.headers:
@@ -813,9 +828,9 @@ class ProxyHandler(BaseHTTPRequestHandler):
             if e[0] not in (10053, 10060, errno.EPIPE):
                 raise
         finally:
-            if self.__realsock:
-                self.__realsock.shutdown(socket.SHUT_WR)
-                self.__realsock.close()
+            if self.connection:
+                self.connection.shutdown(socket.SHUT_WR)
+                self.connection.close()
             if self._realrfile:
                 self._realrfile.close()
 
