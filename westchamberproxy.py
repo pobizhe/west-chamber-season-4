@@ -11,7 +11,7 @@
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 from SocketServer import ThreadingMixIn
 from httplib import HTTPResponse, BadStatusLine
-import os, re, socket, struct, threading, traceback, sys, select, urlparse, signal, urllib, urllib2, time, hashlib, binascii, zlib, httplib, errno, string, logging, random, ssl, heapq, fnmatch
+import os, re, socket, struct, threading, traceback, sys, select, urlparse, signal, urllib, urllib2, time, hashlib, binascii, zlib, httplib, errno, string, logging, random, ssl, heapq, fnmatch, thread
 import DNS
 
 try:
@@ -93,8 +93,60 @@ def socket_create_connection((host, port), timeout=None, source_address=None):
 
 def hookInit():
     print ("hookInit: " + gConfig["PROXY_TYPE"] + " " + gConfig["GOAGENT_FETCHHOST"])
-    gConfig["HOST"][gConfig["GOAGENT_FETCHHOST"]] = gConfig["GOAGENT_IP"][0]
+    print "GAE Bandwidth" + ":" + "%sG\n" % len(gConfig["GOAGENT_FETCHHOST"])
+    gConfig["HOST"][gConfig["GOAGENT_FETCHHOST"]] = gConfig["GOAGENT_IP"]
     socket.create_connection = socket_create_connection
+
+gOptions = {}
+
+gipWhiteList = []
+domainWhiteList = [
+    "renren.com",
+    "baidu.com",
+    "mozilla.org",
+    "mozilla.net",
+    "mozilla.com",
+    "wp.com",
+    "qstatic.com",
+    "serve.com",
+    "qq.com",
+    "qqmail.com",
+    "soso.com",
+    "weibo.com",
+    "p.vip.weibo.com",
+    "youku.com",
+    "tudou.com",
+    "ft.net",
+    "ge.net",
+    "no-ip.com",
+    "nbcsandiego.com",
+    "unity3d.com",
+    "opswat.com",
+    "126.net",
+    "163.com",
+    ]
+
+def isIpBlocked(ip):
+    if "BLOCKED_IPS" in gConfig:
+        if ip in gConfig["BLOCKED_IPS"]:
+            return True
+    if "BLOCKED_IPS_M16" in gConfig:
+        ipm16 = ".".join(ip.split(".")[:2])
+        if ipm16 in gConfig["BLOCKED_IPS_M16"]:
+            return True
+    if "BLOCKED_IPS_M24" in gConfig:
+        ipm24 = ".".join(ip.split(".")[:3])
+        if ipm24 in gConfig["BLOCKED_IPS_M24"]:
+            return True
+    return False
+
+def isDomainBlocked(host):
+    rootDomain = string.join(host.split('.')[-2:], '.')
+    if (host in gConfig["BLOCKED_DOMAINS"]):
+        return True
+    if rootDomain not in ["nicovideo.jp", "facebook.com", "twitter.com"]:
+        return rootDomain in gConfig["BLOCKED_DOMAINS"]
+    return False
 
 class SimpleMessageClass(object):
 
@@ -180,57 +232,6 @@ class SimpleMessageClass(object):
     def __str__(self):
         return ''.join(self.headers)
 
-gOptions = {}
-
-gipWhiteList = []
-domainWhiteList = [
-    "renren.com",
-    "baidu.com",
-    "mozilla.org",
-    "mozilla.net",
-    "mozilla.com",
-    "wp.com",
-    "qstatic.com",
-    "serve.com",
-    "qq.com",
-    "qqmail.com",
-    "soso.com",
-    "weibo.com",
-    "p.vip.weibo.com",
-    "youku.com",
-    "tudou.com",
-    "ft.net",
-    "ge.net",
-    "no-ip.com",
-    "nbcsandiego.com",
-    "unity3d.com",
-    "opswat.com",
-    "126.net",
-    "163.com",
-    ]
-
-def isIpBlocked(ip):
-    if "BLOCKED_IPS" in gConfig:
-        if ip in gConfig["BLOCKED_IPS"]:
-            return True
-    if "BLOCKED_IPS_M16" in gConfig:
-        ipm16 = ".".join(ip.split(".")[:2])
-        if ipm16 in gConfig["BLOCKED_IPS_M16"]:
-            return True
-    if "BLOCKED_IPS_M24" in gConfig:
-        ipm24 = ".".join(ip.split(".")[:3])
-        if ipm24 in gConfig["BLOCKED_IPS_M24"]:
-            return True
-    return False
-
-def isDomainBlocked(host):
-    rootDomain = string.join(host.split('.')[-2:], '.')
-    if (host in gConfig["BLOCKED_DOMAINS"]):
-        return True
-    if rootDomain not in ["nicovideo.jp", "facebook.com", "twitter.com"]:
-        return rootDomain in gConfig["BLOCKED_DOMAINS"]
-    return False
-
 def urlfetch(url, payload, method, headers, fetchhost, fetchserver, password=None, dns=None, on_error=None):
     errors = []
     params = {'url':url, 'method':method, 'headers':headers, 'payload':payload}
@@ -241,43 +242,27 @@ def urlfetch(url, payload, method, headers, fetchhost, fetchserver, password=Non
     if dns:
         params['dns'] = dns
     params =  '&'.join('%s=%s' % (k, binascii.b2a_hex(v)) for k, v in params.iteritems())
-    for i in xrange(3):
-        try:
-            logging.debug('urlfetch %r by %r', url, fetchserver)
-            request = urllib2.Request(fetchserver, zlib.compress(params, 9))
-            request.add_header('Content-Type', '')
-            request.add_header('Host', fetchhost)
-            response = urllib2.urlopen(request)
-            compressed = response.read(1)
+    logging.debug('urlfetch %r by %r', url, fetchserver)
+    request = urllib2.Request(fetchserver, zlib.compress(params, 9))
+    request.add_header('Content-Type', '')
+    request.add_header('Host', fetchhost)
+    response = urllib2.urlopen(request)
+    compressed = response.read(1)
 
-            data = {}
-            if compressed == '0':
-                data['code'], hlen, clen = struct.unpack('>3I', response.read(12))
-                data['headers'] = SimpleMessageClass((k, binascii.a2b_hex(v)) for k, _, v in (x.partition('=') for x in response.read(hlen).split('&')))
-                data['response'] = response
-            elif compressed == '1':
-                rawdata = zlib.decompress(response.read())
-                data['code'], hlen, clen = struct.unpack('>3I', rawdata[:12])
-                data['headers'] = SimpleMessageClass((k, binascii.a2b_hex(v)) for k, _, v in (x.partition('=') for x in rawdata[12:12+hlen].split('&')))
-                data['content'] = rawdata[12+hlen:12+hlen+clen]
-                response.close()
-            else:
-                raise ValueError('Data format not match(%s)' % url)
-
-            return (0, data)
-        except Exception as e:
-            if on_error:
-                logging.info('urlfetch error=%s on_error=%s', str(e), str(on_error))
-                data = on_error(e)
-                if data:
-                    newfetch = (data.get('fetchhost'), data.get('fetchserver'))
-                    if newfetch != (fetchhost, fetchserver):
-                        (fetchhost, fetchserver) = newfetch
-                        sys.stdout.write(hookInit())
-            errors.append(str(e))
-            time.sleep(i+1)
-            continue
-    return (-1, errors)
+    data = {}
+    if compressed == '0':
+        data['code'], hlen, clen = struct.unpack('>3I', response.read(12))
+        data['headers'] = SimpleMessageClass((k, binascii.a2b_hex(v)) for k, _, v in (x.partition('=') for x in response.read(hlen).split('&')))
+        data['response'] = response
+    elif compressed == '1':
+        rawdata = zlib.decompress(response.read())
+        data['code'], hlen, clen = struct.unpack('>3I', rawdata[:12])
+        data['headers'] = SimpleMessageClass((k, binascii.a2b_hex(v)) for k, _, v in (x.partition('=') for x in rawdata[12:12+hlen].split('&')))
+        data['content'] = rawdata[12+hlen:12+hlen+clen]
+        response.close()
+    else:
+        raise ValueError('Data format not match(%s)' % url)
+    return (0, data)
 
 class CertUtil(object):
     '''CertUtil module, based on mitmproxy'''
@@ -628,6 +613,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
                     html = html.replace("{" + key + "}", str(gConfig[key]))
             self.wfile.write(status + "\r\n\r\n" + html)
             return
+
         try:
             if (host in gConfig["HSTS_DOMAINS"]):
                 redirectUrl = "https://" + self.path[7:]
@@ -654,17 +640,19 @@ class ProxyHandler(BaseHTTPRequestHandler):
             if not inWhileList:
                 doInject = self.enableInjection(host, connectHost)
                 logging.info ("Resolved " + host + " => " + connectHost)
+                return self.do_METHOD_Tunnel()
 
             if isDomainBlocked(host) or isIpBlocked(connectHost):
-                logging.info(host + " blocked, try goagent.")
-                return self.do_METHOD_Tunnel()
-            else:
                 self.remote = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 logging.debug( "connect to " + host + ":" + str(port))
                 self.remote.connect((connectHost, port))
+                doInject = True
                 if doInject: 
                     logging.info ("inject http for "+host)
                     self.remote.send("\r\n\r\n")
+            else:
+                logging.info(host + " blocked, try goagent.")
+                return self.do_METHOD_Tunnel()
 
             # Send requestline
             if path == "":
@@ -674,7 +662,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
             
             self.remote.send(str(self.headers) + "\r\n")
             # Send Post data
-            if(self.command=='POST'):
+            if self.command=='POST':
                 self.remote.send(self.rfile.read(int(self.headers['Content-Length'])))
             response = HTTPResponse(self.remote, method=self.command)
             badStatusLine = False
@@ -736,7 +724,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
                 if code in [32, 10053]: #errno.EPIPE, 10053 is for Windows
                     logging.info ("Detected remote disconnect: " + host)
                     return
-                if code in [54, 11004, 10051, 10054, 10060, 'timed out']:#reset
+                if code in [54, 11004, 10051, 10054, 10060]:#reset
                     logging.info(host + ": reset from " + connectHost)
                     gConfig["BLOCKED_IPS"][connectHost] = True
                     return
@@ -746,13 +734,14 @@ class ProxyHandler(BaseHTTPRequestHandler):
                         domainWhiteList.append(host)
                     return
  
-            print "error in proxy: ", self.requestline
-            print exc_type
-            print str(exc_value) + " " + host
             if exc_type == socket.timeout or (exc_type == socket.error and code in [60, 110, 10060]): #timed out, 10060 is for Windows
                 if not inWhileList:
                     logging.info ("add "+host+" to blocked domains")
                     gConfig["BLOCKED_IPS"][connectHost] = True
+
+            print "error in proxy: ", self.requestline
+            print exc_type
+            print str(exc_value) + " " + host
 
     def send_response(self, code, message=None):
         self.log_request(code)
@@ -779,45 +768,47 @@ class ProxyHandler(BaseHTTPRequestHandler):
         host, _, port = self.path.rpartition(':')
         ip = self.getip(host)
         logging.info ("[Connect] Resolved " + host + " => " + ip)
+        self.do_CONNECT_Tunnel()
         try:
-            if isDomainBlocked(host) or isIpBlocked(ip):
+            if not (isDomainBlocked(host) or isIpBlocked(ip)):
                 self.remote = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 logging.info ("SSL: connect " + host + " ip:" + ip)
-                self.remote.connect((ip, int(port)))
+                self.remote.connect((ip, port))
 
                 Agent = 'WCProxy/1.0'
                 self.wfile.write('HTTP/1.1'+' 200 Connection established\n'+
-                         'Proxy-agent: %s\n\n'%Agent)
+                        'Proxy-agent: %s\n\n'%Agent)
                 self._read_write()
                 return
         except:
             logging.info ("SSL: connect " + ip + " failed.")
             gConfig["BLOCKED_IPS"][ip] = True
-        self.do_CONNECT_Tunnel()
 
     def do_CONNECT_Tunnel(self):
         # for ssl proxy
         host, _, port = self.path.rpartition(':')
         keyfile, certfile = CertUtil.get_cert(host)
+        self.log_request(200)
         self.connection.sendall('HTTP/1.1 200 OK\r\n\r\n')
         self.__realsock = self.connection
         try:
             self.connection = ssl.wrap_socket(self.__realsock, certfile=certfile, keyfile=keyfile, server_side=True, ssl_version=ssl.PROTOCOL_SSLv23)
         except Exception as e:
-            logging.exception('ssl.wrap_socket(self.connection=%r) failed: %s', self.connection, e)
-            #self.connection = ssl.wrap_socket(self.__realsock, certfile=certfile, keyfile=keyfile, server_side=True, ssl_version=ssl.PROTOCOL_SSLv23)
+          #  self.connection = ssl.wrap_socket(self.__realsock, certfile=certfile, keyfile=keyfile, server_side=True, ssl_version=ssl.PROTOCOL_SSLv23)
+            if e[0] not in (10053, 10054):
+                logging.error('ssl.wrap_socket(self.connection=%r) failed: %s', self.connection, e)
             return
         self._realpath = self.path
         self._realrfile = self.rfile
         self._realwfile = self.wfile
         self.rfile = self.connection.makefile('rb', self.rbufsize)
         self.wfile = self.connection.makefile('wb', self.wbufsize)
+        self.raw_requestline = self.rfile.readline(8192)
+        if self.raw_requestline == '':
+            return
         try:
-            self.raw_requestline = self.rfile.readline(8192)
-            if self.raw_requestline == '':
-                return
             self.parse_request()
-            if self.path[0] == '/' and host:
+            if self.path[0] == '/':
                 if 'Host' in self.headers:
                     self.path = 'https://%s:%s%s' % (self.headers['Host'].partition(':')[0], port or 443, self.path)
                 else:
@@ -828,74 +819,14 @@ class ProxyHandler(BaseHTTPRequestHandler):
             if e[0] not in (10053, 10060, errno.EPIPE):
                 raise
         finally:
-            if self.connection:
-                self.connection.shutdown(socket.SHUT_WR)
-                self.connection.close()
+            if self.__realsock:
+                try:
+                    self.__realsock.shutdown(socket.SHUT_WR)
+                except socket.error:
+                    pass
+                self.__realsock.close()
             if self._realrfile:
                 self._realrfile.close()
-
-    def do_METHOD_Tunnel(self):
-        headers = self.headers
-        host = headers.get('Host', '') or urlparse.urlparse(self.path).netloc.partition(':')[0]
-        if (host in gConfig["ADSHOST"]):
-            status = "HTTP/1.1 404 Not Found"
-            self.wfile.write(status + "\r\n\r\n")
-            return
-
-        if self.path[0] == '/' and host:
-            self.path = 'http://%s%s' % (host, self.path)
-        content_length = int(headers.get('Content-Length', 0))
-        payload = self.rfile.read(content_length) if content_length else ''
-
-        if 'Range' in headers.dict:
-            m = re.search('bytes=(\d+)-', headers.dict['Range'])
-            start = int(m.group(1) if m else 0)
-            headers['Range'] = 'bytes=%d-%d' % (start, start+gConfig['AUTORANGE_MAXSIZE']-1)
-            logging.info('autorange range=%r match url=%r', headers['Range'], self.path)
-        elif host.endswith(gConfig['AUTORANGE_HOSTS_TAIL']):
-            try:
-                pattern = (p for p in gConfig['AUTORANGE_HOSTS'] if host.endswith(p) or fnmatch.fnmatch(host, p)).next()
-                logging.debug('autorange pattern=%r match url=%r', pattern, self.path)
-                m = re.search('bytes=(\d+)-', headers.get('Range', ''))
-                start = int(m.group(1) if m else 0)
-                headers['Range'] = 'bytes=%d-%d' % (start, start+gConfig['AUTORANGE_MAXSIZE']-1)
-            except StopIteration:
-                pass
-
-        skip_headers = frozenset(['Host', 'Vary', 'Via', 'X-Forwarded-For', 'Proxy-Authorization', 'Proxy-Connection', 'Upgrade', 'Keep-Alive'])
-        strheaders = ''.join('%s: %s\r\n' % (k, v) for k, v in headers.iteritems() if k not in skip_headers)
-
-        retval, data = self.fetch(self.path, payload, self.command, strheaders)
-        try:
-            if retval == -1:
-                return self.end_error(502, str(data))
-            code = data['code']
-            headers = data['headers']
-            self.log_request(code)
-            if code == 206 and self.command == 'GET':
-                content_range = headers.get('Content-Range') or headers.get('content-range') or ''
-                m = re.search(r'bytes\s+(\d+)-(\d+)/(\d+)', content_range)
-                if m and self.rangefetch(m, data):
-                    return
-            content = '%s %d %s\r\n%s\r\n' % (self.protocol_version, code, self.responses.get(code, ('GoAgent Notify', ''))[0], headers)
-            self.connection.sendall(content)
-            try:
-                self.connection.sendall(data['content'])
-            except KeyError:
-                #logging.info('OOPS, KeyError! Content-Type=%r', headers.get('Content-Type'))
-                response = data['response']
-                while 1:
-                    content = response.read(gConfig['AUTORANGE_BUFSIZE'])
-                    if not content:
-                        response.close()
-                        break
-                    self.connection.sendall(content)
-            if 'close' == headers.get('Connection'):
-                self.close_connection = 1
-        except socket.error as e:
-            # Connection closed before proxy return
-            if e[0] in (10053, errno.EPIPE):
-                return
 
     def fetch(self, url, payload, method, headers):
         return urlfetch(url, payload, method, headers, gConfig["GOAGENT_FETCHHOST"], gConfig["GAE_FETCHSERVER"], password=gConfig["GOAGENT_PASSWORD"])
@@ -982,6 +913,69 @@ class ProxyHandler(BaseHTTPRequestHandler):
                 self.wfile.write(data['content'])
         logging.info('>>>>>>>>>>>>>>> Range Fetch ended(%r)', self.headers.get('Host'))
         return True
+
+    def do_METHOD_Tunnel(self):
+        headers = self.headers
+        host = headers.get('Host', '')
+        if (host in gConfig["ADSHOST"]):
+            status = "HTTP/1.1 404 Not Found"
+            self.wfile.write(status + "\r\n\r\n")
+            return
+
+        if self.path[0] == '/':
+            self.path = 'http://%s%s' % (host, self.path)
+        payload = self.rfile.read(int(headers.get('Content-Length', 0)))
+
+        if 'Range' in headers:
+            m = re.search('bytes=(\d+)-', headers['Range'])
+            start = int(m.group(1) if m else 0)
+            headers['Range'] = 'bytes=%d-%d' % (start, start+gConfig['AUTORANGE_MAXSIZE']-1)
+            logging.info('autorange range=%r match url=%r', headers['Range'], self.path)
+        elif host.endswith(gConfig['AUTORANGE_HOSTS_TAIL']):
+            try:
+                pattern = (p for p in gConfig['AUTORANGE_HOSTS'] if host.endswith(p) or fnmatch.fnmatch(host, p)).next()
+                logging.debug('autorange pattern=%r match url=%r', pattern, self.path)
+                m = re.search('bytes=(\d+)-', headers.get('Range', ''))
+                start = int(m.group(1) if m else 0)
+                headers['Range'] = 'bytes=%d-%d' % (start, start+gConfig['AUTORANGE_MAXSIZE']-1)
+            except StopIteration:
+                pass
+
+        skip_headers = frozenset(['Host', 'Vary', 'Via', 'X-Forwarded-For', 'Proxy-Authorization', 'Proxy-Connection', 'Upgrade', 'Keep-Alive', 'X-Chrome-Variations'])
+        strheaders = ''.join('%s: %s\r\n' % (k, v) for k, v in headers.iteritems() if k not in skip_headers)
+
+        retval, data = self.fetch(self.path, payload, self.command, strheaders)
+        try:
+            if retval == -1:
+                return self.end_error(502, str(data))
+            code = data['code']
+            headers = data['headers']
+            self.log_request(code)
+            if code == 206 and self.command=='GET':
+                content_range = headers.get('Content-Range') or headers.get('content-range') or ''
+                m = re.search(r'bytes\s+(\d+)-(\d+)/(\d+)', content_range)
+                if m and self.rangefetch(m, data):
+                    return
+            content = '%s %d %s\r\n%s\r\n' % (self.protocol_version, code, self.responses.get(code, ('GoAgent Notify', ''))[0], headers)
+            self.connection.sendall(content)
+            try:
+                self.connection.sendall(data['content'])
+            except KeyError:
+                #logging.info('OOPS, KeyError! Content-Type=%r', headers.get('Content-Type'))
+                response = data['response']
+                while 1:
+                    content = response.read(gConfig['AUTORANGE_BUFSIZE'])
+                    if not content:
+                        response.close()
+                        break
+                    self.connection.sendall(content)
+            if 'close' == headers.get('Connection',''):
+                self.close_connection = 1
+        except socket.error as e:
+            # Connection closed before proxy return
+            if e[0] in (10053, errno.EPIPE):
+                self._read_write()
+                return
     
     # reslove ssl from http://code.google.com/p/python-proxy/
     def _read_write(self):
@@ -1009,17 +1003,26 @@ class ProxyHandler(BaseHTTPRequestHandler):
                 logging.debug( "select timeout")
                 break
 
-def addressInNetwork(ip,net):
-    "Is an address in a network"
-    ipaddr = struct.unpack('>L',socket.inet_aton(ip))[0]
-    netaddr,bits = net.split('/')
-    netmask = struct.unpack('>L',socket.inet_aton(netaddr))[0]
-    ipaddr_masked = ipaddr & (4294967295<<(32-int(bits)))   # Logical AND of IP address and mask will equal the network address if it matches
-    if netmask == netmask & (4294967295<<(32-int(bits))):   # Validate network address is valid for mask
-        return ipaddr_masked == netmask
-    else:
-        print "***WARNING*** Network",netaddr,"not valid with mask /"+bits
-        return ipaddr_masked == netmask
+class PacServerHandler(BaseHTTPRequestHandler):
+
+    def do_GET(self):
+        filename = os.path.join(os.path.dirname(__file__), "flora_pac.pac")
+        if self.path != '/'+"flora_pac.pac" or not os.path.isfile(filename):
+            return self.send_error(404, 'Not Found')
+        with open(filename, 'rb') as fp:
+            data = fp.read()
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/x-ns-proxy-autoconfig')
+            self.end_headers()
+            self.wfile.write(data)
+            self.wfile.close()
+
+class ProxyAndPacHandler(ProxyHandler, PacServerHandler):
+    def do_GET(self):
+        if self.path == '/'+"flora_pac.pac":
+            PacServerHandler.do_GET(self)
+        else:
+            ProxyHandler.do_METHOD_Tunnel(self)
 
 def start():
     cnt = {}
@@ -1068,16 +1071,6 @@ def start():
         heapq.heappush(dnsHeap, (1,d))
 
     try:
-        import json
-        global gipWhiteList;
-        s = open(gConfig["CHINA_IP_LIST_FILE"])
-        gipWhiteList = json.loads( s.read() )
-        logging.info( "load %d ip range rules" % len(gipWhiteList))
-        s.close()
-    except:
-        logging.info( "load ip-range config fail")
-
-    try:
         s = urllib2.urlopen(gConfig["BLOCKED_DOMAINS_URI"])
         for line in s.readlines():
             line = line.strip()
@@ -1090,12 +1083,19 @@ def start():
     print "Loaded", len(gConfig["HOST"]), " dns rules."
     print "Set your browser's HTTP/HTTPS proxy to 127.0.0.1:%d"%(gOptions.port)
     print "You can configure your proxy var http://127.0.0.1:%d"%(gOptions.port)
+    print "Pac Server:  http://127.0.0.1:%d/flora_pac.pac\n" %(gConfig["PAC_PORT"])
     if gConfig['CONFIG_ON_STARTUP']:
         try: 
             import webbrowser
             webbrowser.open("http://127.0.0.1:%d"%gOptions.port)
         except:
             pass
+
+    ThreadingHTTPServer.address_family = (socket.AF_INET, socket.AF_INET6)[':' in "0.0.0.0"]
+
+    if gConfig["PAC_PORT"] != gConfig["LOCAL_PORT"]:
+        server = ThreadingHTTPServer(("0.0.0.0", gConfig["PAC_PORT"]), PacServerHandler)
+        thread.start_new_thread(server.serve_forever,())
 
     server = ThreadingHTTPServer(("0.0.0.0", gOptions.port), ProxyHandler)
     try: server.serve_forever()
