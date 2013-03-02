@@ -818,9 +818,12 @@ goto MENU
 :4
 echo.
 echo 请稍等,正在获取Google服务器的IP
-for /f "tokens=2 delims=[]" %%i in ('ping www.g.cn') do set GOOGLE=%%i
-for /f "delims=." %%i in ("%GOOGLE%") do if %%i==203 (echo 你获取的是北京服务器的地址，正在更新hosts，请稍等) else echo 你获取的是%GOOGLE%，不是Google北京服务器地址，正在更新hosts，请稍等
-for /f "delims=." %%i in ("%GOOGLE%") do if not %%i==203 echo 因为地址不是北京服务器，可能导致服务不能用，推荐使用选项 1 更新hosts
+setlocal enabledelayedexpansion
+set min=1
+set max=32
+set /a mod=!max!-!min!+1
+set /a r=!random!%%!mod!+!min!
+set GOOGLE=203.208.37.%r%
 type %windir%\System32\drivers\etc\hosts|find "FGQI" /i /v|find "Google" /i /v|find "ggpht" /i /v|find "gmail" /i /v|find "gstatic" /i /v|find "appspot" /i /v|find "sandai" /i /v|find "github" /i /v|findstr "." >>%windir%\System32\drivers\etc\hostsfgqi
 if exist %windir%\System32\drivers\etc\hosts.backup1 del %windir%\System32\drivers\etc\hosts.backup1 /q
 if exist %windir%\System32\drivers\etc\hosts.backup ren %windir%\System32\drivers\etc\hosts.backup hosts.backup1
@@ -1073,9 +1076,12 @@ goto MENU
 :5
 echo.
 echo 请稍等,正在获取Google服务器的IP
-for /f "tokens=2 delims=[]" %%i in ('ping www.google.cn') do set GOOGLE=%%i
-for /f "delims=." %%i in ("%GOOGLE%") do if %%i==203 (echo 你获取的是北京服务器的地址，正在更新hosts，请稍等) else echo 你获取的是%GOOGLE%，不是Google北京服务器地址，正在更新hosts，请稍等
-for /f "delims=." %%i in ("%GOOGLE%") do if not %%i==203 echo 因为地址不是北京服务器，可能导致服务不能用，推荐使用选项 1 更新hosts
+setlocal enabledelayedexpansion
+set min=128
+set max=223
+set /a mod=!max!-!min!+1
+set /a r=!random!%%!mod!+!min!
+set GOOGLE=203.208.46.%r%
 type %windir%\System32\drivers\etc\hosts|find "FGQI" /i /v|find "Google" /i /v|find "ggpht" /i /v|find "gmail" /i /v|find "gstatic" /i /v|find "appspot" /i /v|find "sandai" /i /v|find "github" /i /v|findstr "." >>%windir%\System32\drivers\etc\hostsfgqi
 if exist %windir%\System32\drivers\etc\hosts.backup1 del %windir%\System32\drivers\etc\hosts.backup1 /q
 if exist %windir%\System32\drivers\etc\hosts.backup ren %windir%\System32\drivers\etc\hosts.backup hosts.backup1
