@@ -637,8 +637,8 @@ class ProxyHandler(BaseHTTPRequestHandler):
                     inWhileList = True
 
             connectHost = self.getip(host)
+            doInject = self.enableInjection(host, connectHost)
             if not inWhileList:
-                doInject = self.enableInjection(host, connectHost)
                 logging.info ("Resolved " + host + " => " + connectHost)
                 return self.do_METHOD_Tunnel()
 
@@ -646,8 +646,8 @@ class ProxyHandler(BaseHTTPRequestHandler):
                 self.remote = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 logging.debug( "connect to " + host + ":" + str(port))
                 self.remote.connect((connectHost, port))
-                doInject = True
-                if doInject: 
+                #doInject = True
+                if doInject == True: 
                     logging.info ("inject http for "+host)
                     self.remote.send("\r\n\r\n")
             else:
@@ -678,7 +678,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
             except:
                 raise
 
-            if doInject and (response.status == 400 or response.status == 405 or badStatusLine):
+            if response.status == 400 or response.status == 405 or badStatusLine:
                 self.remote.close()
                 self.remote = None
                 logging.info (host + " seem not support inject, " + msg)
