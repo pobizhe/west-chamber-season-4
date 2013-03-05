@@ -560,7 +560,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
         return host
 
     def proxy(self):
-        doInject = False
+        badStatusLine = False
         inWhileList = False
         logging.info (self.requestline)
         port = 80
@@ -637,8 +637,8 @@ class ProxyHandler(BaseHTTPRequestHandler):
                     inWhileList = True
 
             connectHost = self.getip(host)
-            doInject = self.enableInjection(host, connectHost)
             if not inWhileList:
+                doInject = self.enableInjection(host, connectHost)
                 logging.info ("Resolved " + host + " => " + connectHost)
                 return self.do_METHOD_Tunnel()
 
@@ -647,7 +647,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
                 logging.debug( "connect to " + host + ":" + str(port))
                 self.remote.connect((connectHost, port))
                 #doInject = True
-                if doInject == True: 
+                if doInject: 
                     logging.info ("inject http for "+host)
                     self.remote.send("\r\n\r\n")
             else:
@@ -662,10 +662,9 @@ class ProxyHandler(BaseHTTPRequestHandler):
             
             self.remote.send(str(self.headers) + "\r\n")
             # Send Post data
-            if self.command=='POST':
+            if(self.command=='POST'):
                 self.remote.send(self.rfile.read(int(self.headers['Content-Length'])))
             response = HTTPResponse(self.remote, method=self.command)
-            badStatusLine = False
             msg = "http405"
             try :
                 response.begin()
@@ -674,15 +673,15 @@ class ProxyHandler(BaseHTTPRequestHandler):
             except BadStatusLine:
                 print host + " response: BadStatusLine"
                 msg = "badStatusLine"
-                badStatusLine = True
+              #  badStatusLine = True
             except:
                 raise
 
-            if response.status == 400 or response.status == 405 or badStatusLine:
+            if (response.status == 400 or response.status == 405 or badStatusLine) and doInject:
                 self.remote.close()
                 self.remote = None
                 logging.info (host + " seem not support inject, " + msg)
-                return self.do_METHOD_Tunnel()
+                return self.do_CONNECT_Tunnel()
 
             # Reply to the browser
             status = "HTTP/1.1 " + str(response.status) + " " + response.reason
