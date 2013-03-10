@@ -283,23 +283,6 @@ class ProxyHandler(BaseHTTPRequestHandler):
                 response.begin()
                 print (host + " response: %d"%(response.status))
 
-                # Reply to the browser
-                status = "HTTP/1.1 " + str(response.status) + " " + response.reason
-                self.wfile.write(status + "\r\n")
-                h = ''
-                for hh, vv in response.getheaders():
-                    if hh.upper()!='TRANSFER-ENCODING':
-                        h += hh + ': ' + vv + '\r\n'
-                self.wfile.write(h + "\r\n")
-
-                dataLength = 0
-                while True:
-                    response_data = response.read(8192)
-                    if(len(response_data) == 0): break
-                    self.wfile.write(response_data)
-                    dataLength += len(response_data)
-                    logging.debug( "data length: %d"%dataLength)
-                return
             except:
                 if self.remote:
                     self.remote.close()
