@@ -12,8 +12,11 @@ gConfig = {
     "SOCKS_PORT": 1234,
     "GOAGENT_FETCHHOST": GOAGENT_FETCHHOST_LIST[random.randint(0, len(GOAGENT_FETCHHOST_LIST)-1)], 
     "GOAGENT_PASSWORD": "",
-    "GOAGENT_IP": GOAGENT_IP_LIST[random.randint(0, len(GOAGENT_IP_LIST)-1)],
+    "GOAGENT_IP": ['mail.google.com', 'www.google.com.hk', 'www.google.com'], 
+    "GOOGLESITES": ['.google.com', '.googleusercontent.com', '.googleapis.com', '.google-analytics.com', '.googlecode.com', '.google.com.hk', '.appspot.com', '.android.com', '.googlegroups.com'],
+    "GOOGLEFORCEHTTPS": ['www.google.com/url', 'groups.google.com', 'code.google.com', 'mail.google.com', 'docs.google.com', 'profiles.google.com', 'developer.android.com', 'www.google.com.hk', 'webcache.googleusercontent.com'],
     "AUTORANGE_HOSTS": ['.youtube.com', '.atm.youku.com', '.googlevideo.com', 'av.vimeo.com', 'smile-*.nicovideo.jp', 'video.*.fbcdn.net', 's*.last.fm', 'x*.last.fm', '.xvideos.com', '.phncdn.com', '.edgecastcdn.net'],
+    "GOOGLEWITHGAE": ['www.google.com/imgres', 'translate.googleapis.com', 'plus.url.google.com', 'plus.google.com', 'plusone.google.com', 'reader.googleusercontent.com', 'music.google.com', 'apis.google.com', 'feedproxy.google.com', 'books.google.com', 'autoproxy-gfwlist.googlecode.com'],
     "AUTORANGE_THREADS": 2,
     "AUTORANGE_BUFSIZE": 8192,
     "AUTORANGE_WAITSIZE": 524288,
@@ -142,6 +145,7 @@ gConfig = {
         "logentries.com" : 1,
         "stripe.com" : 1,
         "facebook.com": 1,
+        "twitter.com": 1,
     },
     #collect domains that support HTTPS, to reduce usage of web proxy
     "HSTS_ON_EXCEPTION_DOMAINS" : {
@@ -227,7 +231,7 @@ gConfig = {
     "PAGE_RELOAD_HTML": """<html>
     <head>
         <script type="text/javascript" charset="utf-8">
-            window.location.reload();
+            window.location.reload(true);
         </script>
     </head>
     <body>
